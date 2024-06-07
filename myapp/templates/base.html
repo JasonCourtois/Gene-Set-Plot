@@ -1,16 +1,31 @@
+<!-- myapp/templates/umap_plot.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interactive UMAP Plot</title>
+    {% load static %}
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{% static 'myapp/css/style.css' %}"
     />
-    <title>Gene Set Visualizer</title>
   </head>
   <body>
-    <div class="container">
-      <h1>Hello!</h1>
+    <div>
+      <nav class="nav-bar">
+        <div class="contianer">
+          <div class="title">
+            <h1>Gene Set Visualizer</h1>
+          </div>
+          <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/about">About Us</a></li>
+          </ul>
+        </div>
+      </nav>
     </div>
+    <iframe src="{% static 'graph.html' %}" width="100%" height="600px" ></iframe>
   </body>
 </html>

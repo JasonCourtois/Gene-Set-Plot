@@ -49,37 +49,8 @@ fig = px.scatter(
 #size='Effective gene set size',
 # Save the plot as an HTML file
 # Convert the figure to HTML and add custom JavaScript for onclick evzent
-html_str = pio.to_html(fig, full_html=False)
-
-custom_js = """
-<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-<script>
-console.log('testing');
-document.addEventListener('DOMContentLoaded', function() {
-    var myPlot = document.getElementsByClassName('plotly-graph-div');
-    console.log(myPlot);
-    var myPlot = document.getElementsByClassName('plotly-graph-div')[0];
-    myPlot.on('plotly_click', function(data){
-        var point = data.points[0];
-        var geneSetName = point.data.hovertext[point.pointIndex];
-        console.log('Gene set name:', geneSetName);
-        console.log('X:', point.x);
-        console.log('Y:', point.y);
-        console.log(data);
-        var pn='',
-            tn='',
-            colors=[];
-        for(var i=0; i < data.points.length; i++) {
-            pn = data.points[i].pointNumber;
-            tn = data.points[i].curveNumber;
-            colors = data.points[i].data.marker.color;
-        };
-        colors[pn] = '#6bfc03';
-        var update = {'marker': {color: colors}}
-        Plotly.restyle(myPlot, update, [tn]);
-    });
-});
-</script>
-"""
-with open('static/gene_plot.html', 'w', encoding='utf-8') as f:
-    f.write(html_str + custom_js)
+embedding_df_json = embedding_df.to_json(orient='records')
+# Save the JSON to a file or pass it to your frontend
+json_path = 'C:\\Users\\jcour\\Work Github\\Gene-Set-Visualizer\\static\\embedding_df.json'
+with open(json_path, 'w') as f:
+    f.write(embedding_df_json)

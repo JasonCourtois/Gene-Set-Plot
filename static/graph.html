@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" type="text/css" href="./myapp/css/style.css" />
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  </head>
+  <body>
+    <div id="plot-container">
+      <script>
+        // Load the JSON data
+        fetch("./embedding_df.json")
+          .then((response) => response.json())
+          .then((data) => {
+            // Transform the JSON data into arrays
+            var x = data.map((d) => d["X"]);
+            var y = data.map((d) => d["Y"]);
+            var q_value = data.map((d) => d["Q-value"]);
+            var gene_set_name = data.map((d) => d["Gene set name"]);
+            var gene_set_size = data.map((d) => d["Effective gene set size"]);
+
+            // Define the plotly.js scatter plot
+            var trace = {
+              x: x,
+              y: y,
+              mode: "markers",
+              type: "scatter",
+              text: gene_set_name,
+              hoverinfo: "text",
+              marker: {
+                color: q_value,
+                colorscale: [
+                  [0.0, "rgb(167, 3, 255)"],
+                  [0.25, "rgb(167, 3, 255)"],
+                  [0.25, "rgb(199, 94, 255)"],
+                  [0.5, "rgb(199, 94, 255)"],
+                  [0.5, "rgb(206, 132, 245)"],
+                  [0.75, "rgb(206, 132, 245)"],
+                  [0.75, "rgb(235, 196, 255)"],
+                  [1.0, "rgb(235, 196, 255)"],
+                ],
+                colorbar: {
+                  title: "Q-value",
+                },
+              },
+            };
+
+            var layout = {
+              title: "UMAP projection of the Gene dataset",
+              hovermode: "closest",
+              xaxis: { title: "X" },
+              yaxis: { title: "Y" },
+            };
+
+            // Create the plot
+            Plotly.newPlot("plot-container", [trace], layout);
+            var myPlot = document.getElementById("plot-container");
+            myPlot.on("plotly_click", function (data) {
+              var point = data.points[0];
+              var pn = point.pointNumber;
+              var tn = point.curveNumber;
+              var colors = point.data.marker.color.slice();
+              console.log(pn);
+              colors[pn] = "#6bfc03";
+
+              var update = {
+                marker: {
+                  color: colors,
+                  colorbar: {
+                    title: "Q-value",
+                  },
+                  colorscale: [
+                    [0.0, "rgb(167, 3, 255)"],
+                    [0.25, "rgb(167, 3, 255)"],
+                    [0.25, "rgb(199, 94, 255)"],
+                    [0.5, "rgb(199, 94, 255)"],
+                    [0.5, "rgb(206, 132, 245)"],
+                    [0.75, "rgb(206, 132, 245)"],
+                    [0.75, "rgb(235, 196, 255)"],
+                    [1.0, "rgb(235, 196, 255)"],
+                  ]
+                }
+              };
+              Plotly.restyle("plot-container", update, [tn]);
+            });
+          })
+          .catch((error) => console.log(error));
+      </script>
+    </div>
+  </body>
+</html>
