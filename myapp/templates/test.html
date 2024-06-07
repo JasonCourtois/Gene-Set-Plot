@@ -1,0 +1,36 @@
+<!-- myapp/templates/umap_plot.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interactive UMAP Plot</title>
+    {% load static %}
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{% static 'myapp/css/style.css' %}"
+    />
+  </head>
+  <body>
+    <nav class="nav-bar">
+      <div class="contianer">
+        <div class="title">
+          <h1>Gene Set Visualizer</h1>
+        </div>
+        <ul class="nav-links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/about">About Us</a></li>
+        </ul>
+      </div>
+    </nav>
+    <div id="plot-container">
+      <!-- Load Plotly plot -->
+      <iframe
+        src="{% static 'gene_plot.html' %}"
+        width="100%"
+        height="600px"
+      ></iframe>
+    </div>
+  </body>
+</html>
