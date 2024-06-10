@@ -8,51 +8,113 @@
   <body>
     <div id="plot-container">
       <script>
-        function getCookie(name) {
-          var cookieValue = null;
-          if (document.cookie && document.cookie !== "") {
-            var cookies = document.cookie.split(";");
-            for (var i = 0; i < cookies.length; i++) {
-              var cookie = cookies[i].trim();
-              // Does this cookie string begin with the name we want?
-              if (cookie.substring(0, name.length + 1) === name + "=") {
-                cookieValue = decodeURIComponent(
-                  cookie.substring(name.length + 1)
-                );
-                break;
-              }
-            }
-          }
-          return cookieValue;
+        if (localStorage.getItem("data") !== null) {
+          graph();
+        } else {
+          // Load the JSON data
+          fetch("/read-output/")
+            .then((response) => response.json())
+            .then((data) => {
+              // Key names to be extracted from data
+              const keys = [
+                "X",
+                "Y",
+                "Q-value",
+                "Gene set name",
+                "Effective gene set size",
+                "Molecules contributed to enrichment",
+              ];
+
+              // Object to store arrays
+              const dataStorage = {};
+
+              // Transform the JSON data into arrays dynamically
+              keys.forEach((key) => {
+                dataStorage[key] = data.map((d) => d[key]);
+              });
+              dataStorage["color"] = data.map((d) => d["Q-value"]);
+              // Clear previous localStorage entries
+              localStorage.clear();
+
+              // Store the entire data object in localStorage as JSON string
+              localStorage.setItem("data", JSON.stringify(dataStorage));
+              graph();
+            })
+            .catch((error) => console.log(error));
         }
 
-        // Load the JSON data
-        fetch("/read-output/")
-          .then((response) => response.json())
-          .then((data) => {
-            var csrftoken = getCookie("csrftoken");
+        function graph() {
+          let graph_data = JSON.parse(localStorage.getItem("data"));
+          // Define the plotly.js scatter plot
+          var trace = {
+            x: graph_data["X"],
+            y: graph_data["Y"],
+            mode: "markers",
+            type: "scatter",
+            customdata: graph_data["Q-value"],
+            hovertemplate:
+              "X: %{x}<br>Y: %{y}<br>Q-value: %{customdata}<extra></extra>", // Format hover text
+            marker: {
+              color: graph_data["color"],
+              colorscale: [
+                [0.0, "rgb(167, 3, 255)"],
+                [0.25, "rgb(167, 3, 255)"],
+                [0.25, "rgb(199, 94, 255)"],
+                [0.5, "rgb(199, 94, 255)"],
+                [0.5, "rgb(206, 132, 245)"],
+                [0.75, "rgb(206, 132, 245)"],
+                [0.75, "rgb(235, 196, 255)"],
+                [1.0, "rgb(235, 196, 255)"],
+              ],
+              colorbar: {
+                title: {
+                  text: "Q-value",
+                },
+              },
+            },
+          };
 
-            // Transform the JSON data into arrays
-            var x = data.map((d) => d["X"]);
-            var y = data.map((d) => d["Y"]);
-            var q_value = data.map((d) => d["Q-value"]);
-            var gene_set_name = data.map((d) => d["Gene set name"]);
-            var gene_set_size = data.map((d) => d["Effective gene set size"]);
-            var molecules = data.map(
-              (d) => d["Molecules contributed to enrichment"]
-            );
+          var layout = {
+            title: "UMAP projection of the Gene dataset",
+            hovermode: "closest",
+            xaxis: { title: "X" },
+            yaxis: { title: "Y" },
+          };
 
-            // Define the plotly.js scatter plot
-            var trace = {
-              x: x,
-              y: y,
-              mode: "markers",
-              type: "scatter",
-              customdata: q_value,
-              hovertemplate:
-                "X: %{x}<br>Y: %{y}<br>Q-value: %{customdata}<extra></extra>", // Format hover text
+          var config = { responsive: true };
+
+          // Create the plot
+          Plotly.newPlot("plot-container", [trace], layout, config);
+          
+          var myPlot = document.getElementById("plot-container");
+          myPlot.on("plotly_click", function (data) {
+            var point = data.points[0];
+            var pn = point.pointNumber;
+            var tn = point.curveNumber;
+            var colors = point.data.marker.color.slice();
+
+            let unselect = false;
+
+            if ( colors[pn] === "#6bfc03"){
+              let color = graph_data["Q-value"][pn]
+              colors[pn] = color;
+              graph_data["color"][pn] = color;
+              unselect = true;
+            } else {
+              colors[pn] = "#6bfc03";
+              graph_data["color"][pn] = "#6bfc03";
+            }
+
+            localStorage.setItem("data", JSON.stringify(graph_data));
+
+            var update = {
               marker: {
-                color: q_value,
+                color: colors,
+                colorbar: {
+                  title: {
+                    text: "Q-value",
+                  },
+                },
                 colorscale: [
                   [0.0, "rgb(167, 3, 255)"],
                   [0.25, "rgb(167, 3, 255)"],
@@ -63,80 +125,50 @@
                   [0.75, "rgb(235, 196, 255)"],
                   [1.0, "rgb(235, 196, 255)"],
                 ],
-                colorbar: {
-                  title: {
-                    text: "Q-value",
-                  },
-                },
               },
             };
 
-            var layout = {
-              title: "UMAP projection of the Gene dataset",
-              hovermode: "closest",
-              xaxis: { title: "X" },
-              yaxis: { title: "Y" },
+            let current = {
+              pointnumber: pn,
+              qvalue: graph_data["Q-value"][pn],
+              molecules: graph_data["Molecules contributed to enrichment"][pn],
+              setname: graph_data["Gene set name"][pn]
             };
+           
+            let selected = localStorage.getItem("selected");
+            if (selected !== null) {
+              selected = JSON.parse(selected);
+            } else {
+              selected = [];
+            }
+            if (unselect) {
+              for (let i = 0; i < selected; i++) {
+                if (selected[i]['pointnumber'] === current[pointnumber]) {
+                  selected.splice(i, i);
+                }
+              }
+            } else {
+              selected.push(current);
+            }
+            
+            localStorage.setItem("selected", JSON.stringify(selected));
 
-            var config = { responsive: true };
+            Plotly.restyle("plot-container", update, [tn]);
+          });
+        }
 
-            // Create the plot
-            Plotly.newPlot("plot-container", [trace], layout, config);
-            var myPlot = document.getElementById("plot-container");
-            myPlot.on("plotly_click", function (data) {
-              var point = data.points[0];
-              var pn = point.pointNumber;
-              var tn = point.curveNumber;
-              var colors = point.data.marker.color.slice();
-              console.log(pn);
-              colors[pn] = "#6bfc03";
-
-              var update = {
-                marker: {
-                  color: colors,
-                  colorbar: {
-                    title: {
-                      text: "Q-value",
-                    },
-                  },
-                  colorscale: [
-                    [0.0, "rgb(167, 3, 255)"],
-                    [0.25, "rgb(167, 3, 255)"],
-                    [0.25, "rgb(199, 94, 255)"],
-                    [0.5, "rgb(199, 94, 255)"],
-                    [0.5, "rgb(206, 132, 245)"],
-                    [0.75, "rgb(206, 132, 245)"],
-                    [0.75, "rgb(235, 196, 255)"],
-                    [1.0, "rgb(235, 196, 255)"],
-                  ],
-                },
-              };
-
-              let selected = {
-                pointnumber: pn,
-                qvaule: q_value[pn],
-                molecules: molecules[pn],
-              };
-
-              fetch("/read-selected/")
-                .then((response) => response.json())
-                .then((data) => {
-                  console.log(data); // data here is a json file, I want to return the stuff as a dictonary
-                  data.push(selected);
-                  fetch("/update-selected/", {
-                    method: "POST",
-                    headers: {
-                      "Contendt-Type": "application/json",
-                      "X-CSRFToken": csrftoken,
-                    },
-                    body: JSON.stringify(data),
-                  });
-                });
-
-              Plotly.restyle("plot-container", update, [tn]);
-            });
-          })
-          .catch((error) => console.log(error));
+        function clear_selected() {
+          let graph_data = JSON.parse(localStorage.getItem("data"));
+          let selected_points = JSON.parse(localStorage.getItem("selected"));
+          for (let i = 0; i < selected_points.length; i++) {
+            point_number = selected_points[i]["pointnumber"];
+            qvalue = selected_points[i]["qvalue"];
+            graph_data["color"][point_number] = qvalue;
+          }
+          localStorage.setItem('selected', '[]');
+          localStorage.setItem('data', JSON.stringify(graph_data))
+          graph();
+        }
       </script>
     </div>
   </body>
