@@ -3,22 +3,44 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" type="text/css" href="./myapp/css/style.css" />
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   </head>
   <body>
     <div id="plot-container">
       <script>
+        function getCookie(name) {
+          var cookieValue = null;
+          if (document.cookie && document.cookie !== "") {
+            var cookies = document.cookie.split(";");
+            for (var i = 0; i < cookies.length; i++) {
+              var cookie = cookies[i].trim();
+              // Does this cookie string begin with the name we want?
+              if (cookie.substring(0, name.length + 1) === name + "=") {
+                cookieValue = decodeURIComponent(
+                  cookie.substring(name.length + 1)
+                );
+                break;
+              }
+            }
+          }
+          return cookieValue;
+        }
+
         // Load the JSON data
-        fetch("./embedding_df.json")
+        fetch("/read-output/")
           .then((response) => response.json())
           .then((data) => {
+            var csrftoken = getCookie("csrftoken");
+
             // Transform the JSON data into arrays
             var x = data.map((d) => d["X"]);
             var y = data.map((d) => d["Y"]);
             var q_value = data.map((d) => d["Q-value"]);
             var gene_set_name = data.map((d) => d["Gene set name"]);
             var gene_set_size = data.map((d) => d["Effective gene set size"]);
+            var molecules = data.map(
+              (d) => d["Molecules contributed to enrichment"]
+            );
 
             // Define the plotly.js scatter plot
             var trace = {
@@ -26,8 +48,9 @@
               y: y,
               mode: "markers",
               type: "scatter",
-              text: gene_set_name,
-              hoverinfo: "text",
+              customdata: q_value,
+              hovertemplate:
+                "X: %{x}<br>Y: %{y}<br>Q-value: %{customdata}<extra></extra>", // Format hover text
               marker: {
                 color: q_value,
                 colorscale: [
@@ -41,7 +64,9 @@
                   [1.0, "rgb(235, 196, 255)"],
                 ],
                 colorbar: {
-                  title: "Q-value",
+                  title: {
+                    text: "Q-value",
+                  },
                 },
               },
             };
@@ -53,8 +78,10 @@
               yaxis: { title: "Y" },
             };
 
+            var config = { responsive: true };
+
             // Create the plot
-            Plotly.newPlot("plot-container", [trace], layout);
+            Plotly.newPlot("plot-container", [trace], layout, config);
             var myPlot = document.getElementById("plot-container");
             myPlot.on("plotly_click", function (data) {
               var point = data.points[0];
@@ -68,7 +95,9 @@
                 marker: {
                   color: colors,
                   colorbar: {
-                    title: "Q-value",
+                    title: {
+                      text: "Q-value",
+                    },
                   },
                   colorscale: [
                     [0.0, "rgb(167, 3, 255)"],
@@ -79,9 +108,31 @@
                     [0.75, "rgb(206, 132, 245)"],
                     [0.75, "rgb(235, 196, 255)"],
                     [1.0, "rgb(235, 196, 255)"],
-                  ]
-                }
+                  ],
+                },
               };
+
+              let selected = {
+                pointnumber: pn,
+                qvaule: q_value[pn],
+                molecules: molecules[pn],
+              };
+
+              fetch("/read-selected/")
+                .then((response) => response.json())
+                .then((data) => {
+                  console.log(data); // data here is a json file, I want to return the stuff as a dictonary
+                  data.push(selected);
+                  fetch("/update-selected/", {
+                    method: "POST",
+                    headers: {
+                      "Contendt-Type": "application/json",
+                      "X-CSRFToken": csrftoken,
+                    },
+                    body: JSON.stringify(data),
+                  });
+                });
+
               Plotly.restyle("plot-container", update, [tn]);
             });
           })

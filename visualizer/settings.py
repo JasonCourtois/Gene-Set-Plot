@@ -28,6 +28,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+MIDDLEWARE = [
+    'django.middleware.csrf.CsrfViewMiddleware',
+]
+X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # Application definition
 
