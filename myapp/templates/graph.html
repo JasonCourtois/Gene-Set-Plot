@@ -86,8 +86,16 @@
           // Create the plot
           Plotly.newPlot("plot-container", [trace], layout, config);
           
+          // Handles selecting and unselecting data
           var myPlot = document.getElementById("plot-container");
           myPlot.on("plotly_click", function (data) {
+            let selected = localStorage.getItem("selected");
+            if (selected !== null) {
+              selected = JSON.parse(selected);
+            } else {
+              selected = [];
+            }
+
             var point = data.points[0];
             var pn = point.pointNumber;
             var tn = point.curveNumber;
@@ -100,6 +108,9 @@
               colors[pn] = color;
               graph_data["color"][pn] = color;
               unselect = true;
+              console.log(unselect)
+            } else if (selected.length >= 2){
+              return;
             } else {
               colors[pn] = "#6bfc03";
               graph_data["color"][pn] = "#6bfc03";
@@ -135,16 +146,11 @@
               setname: graph_data["Gene set name"][pn]
             };
            
-            let selected = localStorage.getItem("selected");
-            if (selected !== null) {
-              selected = JSON.parse(selected);
-            } else {
-              selected = [];
-            }
+            
             if (unselect) {
-              for (let i = 0; i < selected; i++) {
-                if (selected[i]['pointnumber'] === current[pointnumber]) {
-                  selected.splice(i, i);
+              for (let i = 0; i < selected.length; i++) {
+                if (selected[i]['pointnumber'] === pn) {
+                  selected.splice(i, 1);
                 }
               }
             } else {

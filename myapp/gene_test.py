@@ -34,6 +34,5 @@ def umap_reduction():
     embedding_df['Molecules contributed to enrichment'] = df['Molecules contributed to enrichment'].values
 
     embedding_df_json = embedding_df.to_json(orient='records')
-    print(type(embedding_df_json))
     # Save the JSON to a file or pass it to your frontend
     return embedding_df_json
