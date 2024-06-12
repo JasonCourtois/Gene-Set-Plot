@@ -2,12 +2,14 @@ const pointSize = document.getElementById("point-size");
 const pointStartColor = document.getElementById("point-start-color");
 const pointEndColor = document.getElementById("point-end-color");
 const selectedColor = document.getElementById("selected-color");
+const cutoff = document.getElementById("cutoff");
 
 const defaultSettings = {
   pointSize: "6",
   pointStartColor: "#EBC4FF",
   pointEndColor: "#a703ff",
   selectedColor: "#6bfc03",
+  cutoff: "0.45",
 };
 
 if (localStorage.getItem("settings") !== null) {
@@ -20,9 +22,10 @@ if (localStorage.getItem("settings") !== null) {
 
 function displayValues(settings) {
   pointSize.value = settings["pointSize"];
-  pointStartColor.value = settings["pointStartColor"]
+  pointStartColor.value = settings["pointStartColor"];
   pointEndColor.value = settings["pointEndColor"];
   selectedColor.value = settings["selectedColor"];
+  cutoff.value = settings["cutoff"];
 }
 
 function updateSettings() {
@@ -31,6 +34,7 @@ function updateSettings() {
     pointStartColor: pointStartColor.value,
     pointEndColor: pointEndColor.value,
     selectedColor: selectedColor.value,
+    cutoff: cutoff.value,
   };
   localStorage.setItem("settings", JSON.stringify(settings));
 }

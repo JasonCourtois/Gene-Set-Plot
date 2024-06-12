@@ -28,10 +28,10 @@ def umap_reduction():
 
     # Make Data Frame for website display with the embedding results
     embedding_df = pd.DataFrame(embedding, columns=['X', 'Y'])
-    embedding_df['Q-value'] = df['Q-value'].values
-    embedding_df['Gene set name'] = df['Gene set name'].values
-    embedding_df['Effective gene set size'] = df['Effective gene set size'].values
-    embedding_df['Molecules contributed to enrichment'] = df['Molecules contributed to enrichment'].values
+    embedding_df['qValue'] = df['Q-value'].values
+    embedding_df['setName'] = df['Gene set name'].values
+    embedding_df['setSize'] = df['Effective gene set size'].values
+    embedding_df['molecules'] = df['Molecules contributed to enrichment'].values
 
     embedding_df_json = embedding_df.to_json(orient='records')
     # Save the JSON to a file or pass it to your frontend

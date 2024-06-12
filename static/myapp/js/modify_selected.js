@@ -17,9 +17,9 @@ function updateContent() {
 
   for (let i = 0; i < selecteditems.length; i++) {
     let qvalue = document.getElementById("qvalue-" + (i + 1));
-    qvalue.innerHTML = selecteditems[i]["qvalue"];
+    qvalue.innerHTML = selecteditems[i]["qValue"];
     let set_name = document.getElementById("set-name-" + (i + 1));
-    set_name.innerHTML = "Name: " + selecteditems[i]["setname"];
+    set_name.innerHTML = "Name: " + selecteditems[i]["setName"];
     let molecules = document.getElementById("molecules-" + (i + 1));
     molecules.innerHTML = selecteditems[i]["molecules"];
   }

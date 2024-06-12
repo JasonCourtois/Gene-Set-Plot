@@ -11,9 +11,19 @@
         /*
           Local Storage guide:
           key                 description
-          data                Data is a dictonary with string keys X, Y, Effective gene set size, 
+          data                Data is a dictonary with string keys X, Y, color, molecules, qValue, setName, and setSize.
+                              The values of each of these keys is a list of size n representhing the corresponding value for the nth
+                              gene set. So for example data["X"][23] is the x position of the 23 gene set on the graph
+          
+          selected            This is a list of 0 to 2 items. At each index is a dictonary with keys pointNumber, qValue, setName, and molecules.
+                              Here, the item at selected[0] contains all the information on the first selected point, and selected[1] contains
+                              the info for the second point. So if you needed the qVaule of point 1, you could do selectes[0]["qValue"].
+
+          settings            This is a dictonary contianing.. finish when settings is done 
 
         */
+        const keys = ["X", "Y", "qValue", "setName", "setSize", "molecules"];
+
         if (localStorage.getItem("data") !== null) {
           graph();
         } else {
@@ -21,16 +31,6 @@
           fetch("/read-output/")
             .then((response) => response.json())
             .then((data) => {
-              // Key names to be extracted from data
-              const keys = [
-                "X",
-                "Y",
-                "Q-value",
-                "Gene set name",
-                "Effective gene set size",
-                "Molecules contributed to enrichment",
-              ];
-
               // Object to store arrays
               const dataStorage = {};
 
@@ -38,7 +38,7 @@
               keys.forEach((key) => {
                 dataStorage[key] = data.map((d) => d[key]);
               });
-              dataStorage["color"] = data.map((d) => d["Q-value"]);
+              dataStorage["color"] = data.map((d) => d["qValue"]);
 
               // Store the entire data object in localStorage as JSON string
               localStorage.setItem("data", JSON.stringify(dataStorage));
@@ -49,16 +49,34 @@
 
         function graph() {
           let settings = getSettings();
-          let graph_data = JSON.parse(localStorage.getItem("data"));
+          let full_graph_data = JSON.parse(localStorage.getItem("data"));
+          let graph_data = {};
+
+          keys.forEach((key) => {
+            graph_data[key] = [];
+          });
+
+          graph_data["color"] = [];
+
+          for (let i = 0; i < full_graph_data["X"].length; i++) {
+            if (full_graph_data["qValue"][i] <= settings["cutoff"]) {
+              keys.forEach((key) => {
+                graph_data[key].push(full_graph_data[key][i]);
+              });
+              graph_data["color"].push(full_graph_data["color"][i]);
+            }
+          }
+
+          localStorage.setItem("testing", JSON.stringify(graph_data));
           // Define the plotly.js scatter plot
           var trace = {
             x: graph_data["X"],
             y: graph_data["Y"],
             mode: "markers",
             type: "scatter",
-            customdata: graph_data["Q-value"],
+            customdata: graph_data["qValue"],
             hovertemplate:
-              "X: %{x}<br>Y: %{y}<br>Q-value: %{customdata}<extra></extra>", // Format hover text
+              "X: %{x}<br>Y: %{y}<br>qValue: %{customdata}<extra></extra>", // Format hover text
             marker: {
               color: graph_data["color"],
               colorscale: [
@@ -67,7 +85,7 @@
               ],
               colorbar: {
                 title: {
-                  text: "Q-value",
+                  text: "Q-Value",
                 },
               },
               size: settings["pointSize"],
@@ -105,26 +123,26 @@
             let unselect = false;
 
             if (colors[pn] === settings["selectedColor"]) {
-              let color = graph_data["Q-value"][pn];
+              let color = full_graph_data["qValue"][pn];
               colors[pn] = color;
-              graph_data["color"][pn] = color;
+              full_graph_data["color"][pn] = color;
               unselect = true;
               console.log(unselect);
             } else if (selected.length >= 2) {
               return;
             } else {
               colors[pn] = settings["selectedColor"];
-              graph_data["color"][pn] = settings["selectedColor"];
+              full_graph_data["color"][pn] = settings["selectedColor"];
             }
 
-            localStorage.setItem("data", JSON.stringify(graph_data));
+            localStorage.setItem("data", JSON.stringify(full_graph_data));
 
             var update = {
               marker: {
                 color: colors,
                 colorbar: {
                   title: {
-                    text: "Q-value",
+                    text: "Q-Value",
                   },
                 },
                 colorscale: [
@@ -136,15 +154,15 @@
             };
 
             let current = {
-              pointnumber: pn,
-              qvalue: graph_data["Q-value"][pn],
-              molecules: graph_data["Molecules contributed to enrichment"][pn],
-              setname: graph_data["Gene set name"][pn],
+              pointNumber: pn,
+              qValue: full_graph_data["qValue"][pn],
+              molecules: full_graph_data["molecules"][pn],
+              setname: full_graph_data["setName"][pn],
             };
 
             if (unselect) {
               for (let i = 0; i < selected.length; i++) {
-                if (selected[i]["pointnumber"] === pn) {
+                if (selected[i]["pointNumber"] === pn) {
                   selected.splice(i, 1);
                 }
               }
@@ -164,10 +182,10 @@
             let selected = JSON.parse(localStorage.getItem("selected"));
             let graph_data = JSON.parse(localStorage.getItem("data"));
             let settings = JSON.parse(localStorage.getItem("settings"));
-            let pointnumber;
+            let pointNumber;
             for (let i = 0; i < selected.length; i++) {
-              pointnumber = selected[i]["pointnumber"];
-              graph_data["color"][pointnumber] = settings["selectedColor"];
+              pointNumber = selected[i]["pointNumber"];
+              graph_data["color"][pointNumber] = settings["selectedColor"];
             }
             localStorage.setItem("data", JSON.stringify(graph_data));
             graph();
@@ -178,8 +196,8 @@
           let graph_data = JSON.parse(localStorage.getItem("data"));
           let selected_points = JSON.parse(localStorage.getItem("selected"));
           for (let i = 0; i < selected_points.length; i++) {
-            point_number = selected_points[i]["pointnumber"];
-            qvalue = selected_points[i]["qvalue"];
+            point_number = selected_points[i]["pointNumber"];
+            qvalue = selected_points[i]["qValue"];
             graph_data["color"][point_number] = qvalue;
           }
           localStorage.setItem("selected", "[]");
