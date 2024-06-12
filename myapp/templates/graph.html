@@ -8,6 +8,12 @@
   <body>
     <div id="plot-container">
       <script>
+        /*
+          Local Storage guide:
+          key                 description
+          data                Data is a dictonary with string keys X, Y, Effective gene set size, 
+
+        */
         if (localStorage.getItem("data") !== null) {
           graph();
         } else {
@@ -33,8 +39,6 @@
                 dataStorage[key] = data.map((d) => d[key]);
               });
               dataStorage["color"] = data.map((d) => d["Q-value"]);
-              // Clear previous localStorage entries
-              localStorage.clear();
 
               // Store the entire data object in localStorage as JSON string
               localStorage.setItem("data", JSON.stringify(dataStorage));
@@ -44,6 +48,7 @@
         }
 
         function graph() {
+          let settings = getSettings();
           let graph_data = JSON.parse(localStorage.getItem("data"));
           // Define the plotly.js scatter plot
           var trace = {
@@ -57,20 +62,15 @@
             marker: {
               color: graph_data["color"],
               colorscale: [
-                [0.0, "rgb(167, 3, 255)"],
-                [0.25, "rgb(167, 3, 255)"],
-                [0.25, "rgb(199, 94, 255)"],
-                [0.5, "rgb(199, 94, 255)"],
-                [0.5, "rgb(206, 132, 245)"],
-                [0.75, "rgb(206, 132, 245)"],
-                [0.75, "rgb(235, 196, 255)"],
-                [1.0, "rgb(235, 196, 255)"],
+                [0.0, settings["pointEndColor"]],
+                [1.0, settings["pointStartColor"]],
               ],
               colorbar: {
                 title: {
                   text: "Q-value",
                 },
               },
+              size: settings["pointSize"],
             },
           };
 
@@ -79,17 +79,18 @@
             hovermode: "closest",
             xaxis: { title: "X" },
             yaxis: { title: "Y" },
+            height: Math.max(window.innerHeight - 50, 300),
+            width: Math.max(window.innerWidth - 50, 300),
           };
 
-          var config = { responsive: true };
-
           // Create the plot
-          Plotly.newPlot("plot-container", [trace], layout, config);
-          
+          Plotly.newPlot("plot-container", [trace], layout);
+
           // Handles selecting and unselecting data
           var myPlot = document.getElementById("plot-container");
           myPlot.on("plotly_click", function (data) {
             let selected = localStorage.getItem("selected");
+            settings = getSettings();
             if (selected !== null) {
               selected = JSON.parse(selected);
             } else {
@@ -103,17 +104,17 @@
 
             let unselect = false;
 
-            if ( colors[pn] === "#6bfc03"){
-              let color = graph_data["Q-value"][pn]
+            if (colors[pn] === settings["selectedColor"]) {
+              let color = graph_data["Q-value"][pn];
               colors[pn] = color;
               graph_data["color"][pn] = color;
               unselect = true;
-              console.log(unselect)
-            } else if (selected.length >= 2){
+              console.log(unselect);
+            } else if (selected.length >= 2) {
               return;
             } else {
-              colors[pn] = "#6bfc03";
-              graph_data["color"][pn] = "#6bfc03";
+              colors[pn] = settings["selectedColor"];
+              graph_data["color"][pn] = settings["selectedColor"];
             }
 
             localStorage.setItem("data", JSON.stringify(graph_data));
@@ -127,15 +128,10 @@
                   },
                 },
                 colorscale: [
-                  [0.0, "rgb(167, 3, 255)"],
-                  [0.25, "rgb(167, 3, 255)"],
-                  [0.25, "rgb(199, 94, 255)"],
-                  [0.5, "rgb(199, 94, 255)"],
-                  [0.5, "rgb(206, 132, 245)"],
-                  [0.75, "rgb(206, 132, 245)"],
-                  [0.75, "rgb(235, 196, 255)"],
-                  [1.0, "rgb(235, 196, 255)"],
+                  [0.0, settings["pointEndColor"]],
+                  [1.0, settings["pointStartColor"]],
                 ],
+                size: settings["pointSize"],
               },
             };
 
@@ -143,27 +139,42 @@
               pointnumber: pn,
               qvalue: graph_data["Q-value"][pn],
               molecules: graph_data["Molecules contributed to enrichment"][pn],
-              setname: graph_data["Gene set name"][pn]
+              setname: graph_data["Gene set name"][pn],
             };
-           
-            
+
             if (unselect) {
               for (let i = 0; i < selected.length; i++) {
-                if (selected[i]['pointnumber'] === pn) {
+                if (selected[i]["pointnumber"] === pn) {
                   selected.splice(i, 1);
                 }
               }
             } else {
               selected.push(current);
             }
-            
+
             localStorage.setItem("selected", JSON.stringify(selected));
 
             Plotly.restyle("plot-container", update, [tn]);
           });
         }
 
-        function clear_selected() {
+        // If settings is update apply it
+        window.addEventListener("storage", function (e) {
+          if (e.key === "settings") {
+            let selected = JSON.parse(localStorage.getItem("selected"));
+            let graph_data = JSON.parse(localStorage.getItem("data"));
+            let settings = JSON.parse(localStorage.getItem("settings"));
+            let pointnumber;
+            for (let i = 0; i < selected.length; i++) {
+              pointnumber = selected[i]["pointnumber"];
+              graph_data["color"][pointnumber] = settings["selectedColor"];
+            }
+            localStorage.setItem("data", JSON.stringify(graph_data));
+            graph();
+          }
+        });
+
+        function clearSelected() {
           let graph_data = JSON.parse(localStorage.getItem("data"));
           let selected_points = JSON.parse(localStorage.getItem("selected"));
           for (let i = 0; i < selected_points.length; i++) {
@@ -171,9 +182,21 @@
             qvalue = selected_points[i]["qvalue"];
             graph_data["color"][point_number] = qvalue;
           }
-          localStorage.setItem('selected', '[]');
-          localStorage.setItem('data', JSON.stringify(graph_data))
+          localStorage.setItem("selected", "[]");
+          localStorage.setItem("data", JSON.stringify(graph_data));
           graph();
+        }
+
+        window.onresize = function () {
+          let update = {
+            height: Math.max(window.innerHeight - 50, 300),
+            width: Math.max(window.innerWidth - 50, 300),
+          };
+          Plotly.relayout("plot-container", update);
+        };
+
+        function getSettings() {
+          return JSON.parse(localStorage.getItem("settings"));
         }
       </script>
     </div>

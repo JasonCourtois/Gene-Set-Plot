@@ -5,13 +5,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Interactive UMAP Plot</title>
-    {% load static %}
-    <!--    
+    {% load static %}   
     <link
       rel="stylesheet"
       type="text/css"
       href="{% static 'myapp/css/style.css' %}"
-    />-->
+    />
   </head>
   <body>
     <div>
@@ -27,23 +26,33 @@
         </div>
       </nav>
     </div>
+    <div class="graph-container">
     <iframe
       id="graph"
       src="{% url 'read_graph' %}"
-      width="100%"
-      height="500px"
       frameborder="0"
     ></iframe>
-    <div id="settings-container">
-      <p>
-        <button onclick="clear_selected()">Clear Selected</button>
-      </p>
+    <div class="settings">
+      <label for="point-start-color">point start color</label>
+      <input type="color" id="point-start-color" name="point-start-color" value="#EBC4FF" />
+      <label for="point-end-color">point end color</label>
+      <input type="color" id="point-end-color" name="point-end-color" value="#A703FF" />
+      <label for="selected-color">selected color</label>
+      <input type="color" id="selected-color" name="selected-color" value="#6bfc03" />
+      <label for="point-size">point size</label>
+      <input type="number" id="point-size" name="point-size" value="6" step="any"/>
+      <button onclick="clearSelected()">Clear Selected</button>
+      <button onclick="updateSettings()">Update Settings</button>
+      <script src="{% static 'myapp/js/update_settings.js' %}"></script>
     </div>
+  </div>
+    
     <div id="selected-points-container">
+      <div class="table-wrapper">
       <table id="table-1">
        <thead> 
         <tr>
-          <th colspan="2">Gene Set 1</th>
+          <th colspan="2" id="set-name-1">Name</th>
         </tr>
       </thead>
       <tbody>
@@ -52,19 +61,17 @@
           <td id="qvalue-1"></td>
         </tr>
         <tr>
-          <th>Gene Set Name</td>
-          <td id="set-name-1"></td>
-        </tr>
-        <tr>
           <th>Molecules</td>
           <td id="molecules-1"></td>
         </tr>
       </tbody>
       </table>
+    </div>
+    <div class="table-wrapper">
       <table id="table-2">
         <thead>
         <tr>
-          <th colspan="2">Gene Set 2</th>
+          <th colspan="2" id="set-name-2">Name</th>
         </tr>
       </thead>
       <tbody>
@@ -73,74 +80,13 @@
           <td id="qvalue-2"></td>
         </tr>
         <tr>
-          <th>Gene Set Name</td>
-          <td id="set-name-2"></td>
-        </tr>
-        <tr>
           <th>Molecules</td>
           <td id="molecules-2"></td>
         </tr>
       </tbody>
       </table>
     </div>
-    <script src="{% static 'myapp/js/display_selected.js' %}"></script>
-    <script>
-      function clear_selected() {
-        const iframe = document.getElementById("graph");
-        const iframeWindow = iframe.contentWindow;
-        iframeWindow.clear_selected();
-      }
-    </script>
+    </div>
+    <script src="{% static 'myapp/js/modify_selected.js' %}"></script>
   </body>
-
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      height: 100svh;
-      background-color: #f0f0f0;
-      font-family: Arial, sans-serif;
-    }
-
-    #selected-points-container {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      gap: 100px; /* space between tables */
-      padding: 20px;
-    }
-
-    table {
-      table-layout: auto;
-      width: 50%; /* fixed width */
-      height: 50%; /* fixed height */
-      border-collapse: collapse;
-      background-color: #fff;
-      border: 1px solid #ddd;
-      text-align: left;
-    }
-
-    th, td {
-      padding: 8px;
-      border: 1px solid #ddd;
-    }
-
-    thead {
-      background-color: #ff0000;
-      text-align: center;
-    }
-
-    tbody th {
-      background-color: aquamarine;
-      text-align: center;
-      vertical-align: top;
-      width: 10%;
-    }
-
-    .nav-bar {
-      background-color: #658faa;
-      color: #fff;
-      padding: 20px 0;
-    }
-  </style>
 </html>
