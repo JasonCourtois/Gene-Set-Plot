@@ -9,8 +9,13 @@ from .gene_test import umap_reduction
 def home(request):
     return render(request, "base.html")
 
+def read_output_config(request, umapSettings):
+    print(umapSettings)
+    data = json.loads(umap_reduction(umapSettings))
+    return JsonResponse(data, safe=False)
+
 def read_output(request):
-    data = json.loads(umap_reduction())
+    data = json.loads(umap_reduction(""))
     return JsonResponse(data, safe=False)
     
 def read_graph(request):

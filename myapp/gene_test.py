@@ -5,7 +5,7 @@ import numpy as np
 def jaccard_distance(set1, set2):
     return 1 - (len(set1.intersection(set2)) / len(set1.union(set2)))
 
-def umap_reduction():
+def umap_reduction(umapSettings):
     file_path = 'C:\\Users\\jcour\\Work Github\\Gene-Set-Visualizer\\static\\enrichment-GO.tsv'
     df = pd.read_csv(file_path, sep='\t', header=0)
 
@@ -21,8 +21,22 @@ def umap_reduction():
             distance_matrix[i, j] = dist
             distance_matrix[j, i] = dist
 
+    settings = []
+    reducer = None
 
-    reducer = umap.UMAP(metric='precomputed')
+    if len(umapSettings) != 0:
+        settings = umapSettings.split('-')
+        neighbors = int(settings[0])
+        
+        seed = int(settings[1])
+       
+        if seed == 0:
+            seed = None
+        
+        reducer = umap.UMAP(metric='precomputed', n_neighbors=neighbors, random_state=seed)
+    else:
+        reducer = umap.UMAP(metric='precomputed')
+    
 
     embedding = reducer.fit_transform(distance_matrix)
 

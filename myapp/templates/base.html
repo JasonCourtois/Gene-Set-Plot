@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Interactive UMAP Plot</title>
-    {% load static %}   
+    {% load static %}
     <link
       rel="stylesheet"
       type="text/css"
@@ -27,67 +27,124 @@
       </nav>
     </div>
     <div class="graph-container">
-    <iframe
-      id="graph"
-      src="{% url 'read_graph' %}"
-      frameborder="0"
-    ></iframe>
-    <div class="settings">
-      <label for="point-start-color">point start color</label>
-      <input type="color" id="point-start-color" name="point-start-color" value="#EBC4FF" />
-      <label for="point-end-color">point end color</label>
-      <input type="color" id="point-end-color" name="point-end-color" value="#A703FF" />
-      <label for="selected-color">selected color</label>
-      <input type="color" id="selected-color" name="selected-color" value="#6bfc03" />
-      <label for="point-size">point size</label>
-      <input type="number" id="point-size" name="point-size" value="6" step="any"/>
-      <label for="cutoff">cutoff</label>
-      <input type="number" id="cutoff" name="cutoff" value="0.45" step="any"/>
-      <button onclick="clearSelected()">Clear Selected</button>
-      <button onclick="updateSettings()">Update Settings</button>
-      <script src="{% static 'myapp/js/update_settings.js' %}"></script>
+      <iframe id="graph" src="{% url 'read_graph' %}" frameborder="0"></iframe>
+      <div class="settings">
+        <div class="visual-title"><h3>Graph Settings</h3></div>
+        <div class="setting-pair">
+          <label for="point-start-color">Start Color:</label>
+          <input
+            type="color"
+            id="point-start-color"
+            name="point-start-color"
+            value="#EBC4FF"
+          />
+        </div>
+        <div class="setting-pair">
+          <label for="point-end-color">End Color:</label>
+          <input
+            type="color"
+            id="point-end-color"
+            name="point-end-color"
+            value="#A703FF"
+          />
+        </div>
+        <div class="setting-pair">
+          <label for="selected-color">Selected Color:</label>
+          <input
+            type="color"
+            id="selected-color"
+            name="selected-color"
+            value="#6bfc03"
+          />
+        </div>
+        <div class="setting-pair">
+          <label for="point-size">Point Size:</label>
+          <input
+            type="numeric"
+            id="point-size"
+            name="point-size"
+            value="6"
+            step="0.01"
+          />
+        </div>
+        <div class="setting-pair">
+          <label for="cutoff">Cutoff:</label>
+          <input
+            type="numeric"
+            id="cutoff"
+            name="cutoff"
+            value="0.45"
+            step="0.01"
+          />
+        </div>
+        <div class="umap-title"><h3>UMAP Settings</h3></div>
+        <div class="setting-pair">
+          <label for="neighbors">Neighbors:</label>
+          <input
+            type="numeric"
+            id="neighbors"
+            name="neighbors"
+            value="15"
+            step="1"
+          />
+        </div>
+        <div class="setting-pair">
+          <label for="seed">UMAP Seed (0 is random)</label>
+          <input type="numeric" id="seed" name="seed" value="0" step="1" />
+        </div>
+        <div class="button-container">
+          <button onclick="clearSelected()">Clear Selected</button>
+          <button onclick="updateSettings()">Apply</button>
+        </div>
+        <script src="{% static 'myapp/js/update_settings.js' %}"></script>
+      </div>
     </div>
-  </div>
-    
+
     <div id="selected-points-container">
       <div class="table-wrapper">
-      <table id="table-1">
-       <thead> 
-        <tr>
-          <th colspan="2" id="set-name-1">Name</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>Q-Value</td>
-          <td id="qvalue-1"></td>
-        </tr>
-        <tr>
-          <th>Molecules</td>
-          <td id="molecules-1"></td>
-        </tr>
-      </tbody>
-      </table>
-    </div>
-    <div class="table-wrapper">
-      <table id="table-2">
-        <thead>
-        <tr>
-          <th colspan="2" id="set-name-2">Name</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>Q-Value</td>
-          <td id="qvalue-2"></td>
-        </tr>
-        <tr>
-          <th>Molecules</td>
-          <td id="molecules-2"></td>
-        </tr>
-      </tbody>
-      </table>
-    </div>
+        <table id="table-1">
+          <thead>
+            <tr>
+              <th colspan="2" id="set-name-1">Name</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>Q-Value</th>
+              <td id="qvalue-1"></td>
+            </tr>
+            <tr>
+              <th>Molecules</th>
+              <td id="molecules-1"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="shared-wrapper">
+        <table id="shared">
+          <tr><th>Shared Molecules</th></tr>
+          <tr><td>stuff</td></tr>
+        </table>
+      </div>
+      <div class="shared-wrapper">
+        <table id="table-2">
+          <thead>
+            <tr>
+              <th colspan="2" id="set-name-2">Name</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>Q-Value</th>
+              <td id="qvalue-2"></td>
+            </tr>
+            <tr>
+              <th>Molecules</th>
+              <td id="molecules-2"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
     <script src="{% static 'myapp/js/modify_selected.js' %}"></script>
   </body>

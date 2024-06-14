@@ -8,19 +8,34 @@ function updateContent() {
     return;
   }
 
+  let shared = "";
+  let set1 = "";
+  let set2 = "";
+
   if (selecteditems.length === 0) {
     clearTable(1, 2);
     return;
   } else if (selecteditems.length === 1) {
     clearTable(2, 2);
+  } else {
+    console.log(selecteditems);
+    set1 = new Set(selecteditems[0]["molecules"].split(" "));
+    set2 = new Set(selecteditems[1]["molecules"].split(" "));
+ 
+    let result = findIntersectionAndDifference(set1, set2)
+
+    shared = [...result[0]].join(" ")
+    set1 = [...result[1]].join(" ")
+    set2 = [...result[2]].join(" ")
   }
 
   for (let i = 0; i < selecteditems.length; i++) {
     let qvalue = document.getElementById("qvalue-" + (i + 1));
-    qvalue.innerHTML = selecteditems[i]["qValue"];
     let set_name = document.getElementById("set-name-" + (i + 1));
-    set_name.innerHTML = "Name: " + selecteditems[i]["setName"];
     let molecules = document.getElementById("molecules-" + (i + 1));
+
+    qvalue.innerHTML = selecteditems[i]["qValue"];
+    set_name.innerHTML = "Name: " + selecteditems[i]["setName"];
     molecules.innerHTML = selecteditems[i]["molecules"];
   }
 }
@@ -31,6 +46,7 @@ updateContent();
 // Listen for changes in local storage and update content accordingly
 window.addEventListener("storage", function (e) {
   if (e.key === "selected") {
+    console.log("bruh?");
     updateContent();
   }
 });
@@ -44,6 +60,23 @@ function clearTable(start, stop) {
     let molecules = document.getElementById("molecules-" + i);
     molecules.innerHTML = "";
   }
+}
+
+function findIntersectionAndDifference(set1, set2) {
+  const intersection = new Set();
+  const difference1 = new Set();
+  const difference2 = set2;
+  console.log(set2);
+  for (let i of set1) {
+    if (set2.has(i)) {
+      intersection.add(i);
+      difference2.delete(i);
+    } else {
+      difference1.add(i);
+    }
+  }
+
+  return [intersection, difference1, difference2];
 }
 
 let iframe = document.getElementById("graph").contentWindow;

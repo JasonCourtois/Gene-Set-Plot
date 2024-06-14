@@ -14,43 +14,36 @@
           data                Data is a dictonary with string keys X, Y, color, molecules, qValue, setName, and setSize.
                               The values of each of these keys is a list of size n representhing the corresponding value for the nth
                               gene set. So for example data["X"][23] is the x position of the 23 gene set on the graph
-          
+
           selected            This is a list of 0 to 2 items. At each index is a dictonary with keys pointNumber, qValue, setName, and molecules.
                               Here, the item at selected[0] contains all the information on the first selected point, and selected[1] contains
                               the info for the second point. So if you needed the qVaule of point 1, you could do selectes[0]["qValue"].
 
-          settings            This is a dictonary contianing.. finish when settings is done 
+          settings            This is a dictonary contianing.. finish when settings is done
 
         */
         const keys = ["X", "Y", "qValue", "setName", "setSize", "molecules"];
 
-        if (localStorage.getItem("data") !== null) {
+        main();
+
+        // Draw initial graph
+        async function main() {
+          if (localStorage.getItem("data") === null) {
+            await getUmapData("");
+          }
           graph();
-        } else {
-          // Load the JSON data
-          fetch("/read-output/")
-            .then((response) => response.json())
-            .then((data) => {
-              // Object to store arrays
-              const dataStorage = {};
-
-              // Transform the JSON data into arrays dynamically
-              keys.forEach((key) => {
-                dataStorage[key] = data.map((d) => d[key]);
-              });
-              dataStorage["color"] = data.map((d) => d["qValue"]);
-
-              // Store the entire data object in localStorage as JSON string
-              localStorage.setItem("data", JSON.stringify(dataStorage));
-              graph();
-            })
-            .catch((error) => console.log(error));
+          // Add box shadow around graph to make it pop
+          let mainDisplay = document.getElementsByClassName("user-select-none");
+          mainDisplay[0].style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.1)";
         }
 
+        // Draws graph based on current data stored in local storage key data and settings
         function graph() {
-          let settings = getSettings();
-          let full_graph_data = JSON.parse(localStorage.getItem("data"));
+          let settings = getLocalStorage("settings");
+          let full_graph_data = getLocalStorage("data");
           let graph_data = {};
+          let camera = localStorage.getItem("camera");
+          var myPlot = document.getElementById("plot-container");
 
           keys.forEach((key) => {
             graph_data[key] = [];
@@ -67,18 +60,183 @@
             }
           }
 
-          localStorage.setItem("testing", JSON.stringify(graph_data));
           // Define the plotly.js scatter plot
+          var trace = makeTrace(graph_data, settings);
+
+          var layout = {
+            title: "UMAP projection of the Gene dataset",
+            hovermode: "closest",
+            xaxis: {
+              title: "X",
+            },
+            yaxis: {
+              title: "Y",
+            },
+            height: Math.max(window.innerHeight - 50, 300),
+            width: Math.max(window.innerWidth - 50, 300),
+          };
+
+          if (camera) {
+            camera = JSON.parse(camera);
+            layout.xaxis = camera["xaxis"];
+            layout.yaxis = camera["yaxis"];
+            Plotly.newPlot("plot-container", [trace], layout);
+          } else {
+            Plotly.newPlot(
+              "plot-container",
+              [makeTrace(full_graph_data, settings)],
+              layout
+            );
+            camera = {
+              xaxis: {
+                title: "X",
+                autorange: false,
+                range: myPlot.layout.xaxis.range,
+              },
+              yaxis: {
+                title: "Y",
+                autorange: false,
+                range: myPlot.layout.yaxis.range,
+              },
+            };
+            setLocalStorage("camera", camera);
+            Plotly.newPlot("plot-container", [trace], layout);
+            Plotly.relayout("plot-container", camera);
+          }
+
+          // Handles selecting and unselecting data
+
+          myPlot.on("plotly_click", function (data) {
+            let selected = localStorage.getItem("selected");
+            settings = getLocalStorage("settings");
+            if (selected !== null) {
+              selected = JSON.parse(selected);
+            } else {
+              selected = [];
+            }
+
+            var pointNumber = data.points[0].pointNumber;
+
+            let unselect = false;
+
+            if (
+              full_graph_data["color"][pointNumber] ===
+              settings["selectedColor"]
+            ) {
+              let normalColor = full_graph_data["qValue"][pointNumber];
+              full_graph_data["color"][pointNumber] = normalColor;
+              unselect = true;
+            } else if (selected.length >= 2) {
+              return;
+            } else {
+              full_graph_data["color"][pointNumber] = settings["selectedColor"];
+            }
+
+            setLocalStorage("data", full_graph_data);
+
+            let selectedPoint = {
+              pointNumber: pointNumber,
+              qValue: full_graph_data["qValue"][pointNumber],
+              molecules: full_graph_data["molecules"][pointNumber],
+              setName: full_graph_data["setName"][pointNumber],
+            };
+
+            if (unselect) {
+              for (let i = 0; i < selected.length; i++) {
+                if (selected[i]["pointNumber"] === pointNumber) {
+                  selected.splice(i, 1);
+                }
+              }
+            } else {
+              selected.push(selectedPoint);
+            }
+
+            setLocalStorage("selected", selected);
+            graph();
+          });
+        }
+
+        // Get new graph data from UMAP on backedn
+        function getUmapData(umapSettings) {
+          return new Promise((resolve, reject) => {
+            fetch("/read-output/" + umapSettings)
+              .then((response) => response.json())
+              .then((data) => {
+                localStorage.removeItem("camera");
+                // Object to store arrays
+                const dataStorage = {};
+
+                // Transform the JSON data into arrays dynamically
+                keys.forEach((key) => {
+                  dataStorage[key] = data.map((d) => d[key]);
+                });
+                dataStorage["color"] = data.map((d) => d["qValue"]);
+
+                // Store the entire data object in localStorage as JSON string
+                setLocalStorage("data", dataStorage);
+                resolve();
+              })
+              .catch((error) => {
+                console.log(error);
+                reject(error);
+              });
+          });
+          // Load the JSON data
+        }
+
+        // When settings are changed, apply them
+        window.addEventListener("storage", function (e) {
+          if (e.key === "settings") {
+            let selected = getLocalStorage("selected");
+            let graph_data = getLocalStorage("data");
+            let settings = getLocalStorage("settings");
+            let pointNumber;
+
+            // If umap settings changed, calculate umap again. Otherwise redraw graph
+            if (settings["umapChange"]) {
+              applyUmapChange(settings["umap"]);
+            } else {
+              if (selected === null) {
+                selected = [];
+              }
+
+              // Update selected point colors
+              for (let i = 0; i < selected.length; i++) {
+                pointNumber = selected[i]["pointNumber"];
+                graph_data["color"][pointNumber] = settings["selectedColor"];
+              }
+              setLocalStorage("data", graph_data);
+              graph();
+            }
+          }
+        });
+
+        async function applyUmapChange(umapSettings) {
+          await getUmapData(umapSettings);
+          graph();
+          clearSelected();
+        }
+
+        // Resize window on size change
+        window.onresize = function () {
+          let update = {
+            height: Math.max(window.innerHeight - 50, 300),
+            width: Math.max(window.innerWidth - 50, 300),
+          };
+          Plotly.relayout("plot-container", update);
+        };
+
+        function makeTrace(data, settings) {
           var trace = {
-            x: graph_data["X"],
-            y: graph_data["Y"],
+            x: data["X"],
+            y: data["Y"],
             mode: "markers",
             type: "scatter",
-            customdata: graph_data["qValue"],
+            customdata: data["qValue"],
             hovertemplate:
               "X: %{x}<br>Y: %{y}<br>qValue: %{customdata}<extra></extra>", // Format hover text
             marker: {
-              color: graph_data["color"],
+              color: data["color"],
               colorscale: [
                 [0.0, settings["pointEndColor"]],
                 [1.0, settings["pointStartColor"]],
@@ -91,130 +249,32 @@
               size: settings["pointSize"],
             },
           };
-
-          var layout = {
-            title: "UMAP projection of the Gene dataset",
-            hovermode: "closest",
-            xaxis: { title: "X" },
-            yaxis: { title: "Y" },
-            height: Math.max(window.innerHeight - 50, 300),
-            width: Math.max(window.innerWidth - 50, 300),
-          };
-
-          // Create the plot
-          Plotly.newPlot("plot-container", [trace], layout);
-
-          // Handles selecting and unselecting data
-          var myPlot = document.getElementById("plot-container");
-          myPlot.on("plotly_click", function (data) {
-            let selected = localStorage.getItem("selected");
-            settings = getSettings();
-            if (selected !== null) {
-              selected = JSON.parse(selected);
-            } else {
-              selected = [];
-            }
-
-            var point = data.points[0];
-            var pn = point.pointNumber;
-            var tn = point.curveNumber;
-            var colors = point.data.marker.color.slice();
-
-            let unselect = false;
-
-            if (colors[pn] === settings["selectedColor"]) {
-              let color = full_graph_data["qValue"][pn];
-              colors[pn] = color;
-              full_graph_data["color"][pn] = color;
-              unselect = true;
-              console.log(unselect);
-            } else if (selected.length >= 2) {
-              return;
-            } else {
-              colors[pn] = settings["selectedColor"];
-              full_graph_data["color"][pn] = settings["selectedColor"];
-            }
-
-            localStorage.setItem("data", JSON.stringify(full_graph_data));
-
-            var update = {
-              marker: {
-                color: colors,
-                colorbar: {
-                  title: {
-                    text: "Q-Value",
-                  },
-                },
-                colorscale: [
-                  [0.0, settings["pointEndColor"]],
-                  [1.0, settings["pointStartColor"]],
-                ],
-                size: settings["pointSize"],
-              },
-            };
-
-            let current = {
-              pointNumber: pn,
-              qValue: full_graph_data["qValue"][pn],
-              molecules: full_graph_data["molecules"][pn],
-              setname: full_graph_data["setName"][pn],
-            };
-
-            if (unselect) {
-              for (let i = 0; i < selected.length; i++) {
-                if (selected[i]["pointNumber"] === pn) {
-                  selected.splice(i, 1);
-                }
-              }
-            } else {
-              selected.push(current);
-            }
-
-            localStorage.setItem("selected", JSON.stringify(selected));
-
-            Plotly.restyle("plot-container", update, [tn]);
-          });
+          return trace;
         }
 
-        // If settings is update apply it
-        window.addEventListener("storage", function (e) {
-          if (e.key === "settings") {
-            let selected = JSON.parse(localStorage.getItem("selected"));
-            let graph_data = JSON.parse(localStorage.getItem("data"));
-            let settings = JSON.parse(localStorage.getItem("settings"));
-            let pointNumber;
-            for (let i = 0; i < selected.length; i++) {
-              pointNumber = selected[i]["pointNumber"];
-              graph_data["color"][pointNumber] = settings["selectedColor"];
-            }
-            localStorage.setItem("data", JSON.stringify(graph_data));
-            graph();
-          }
-        });
-
+        // Clear out selected items
         function clearSelected() {
           let graph_data = JSON.parse(localStorage.getItem("data"));
           let selected_points = JSON.parse(localStorage.getItem("selected"));
+          if (selected_points === null) {
+            selected_points = [];
+          }
           for (let i = 0; i < selected_points.length; i++) {
             point_number = selected_points[i]["pointNumber"];
             qvalue = selected_points[i]["qValue"];
             graph_data["color"][point_number] = qvalue;
           }
           localStorage.setItem("selected", "[]");
-          localStorage.setItem("data", JSON.stringify(graph_data));
+          setLocalStorage("data", graph_data);
           graph();
         }
 
-        window.onresize = function () {
-          let update = {
-            height: Math.max(window.innerHeight - 50, 300),
-            width: Math.max(window.innerWidth - 50, 300),
-          };
-          Plotly.relayout("plot-container", update);
-        };
+        function getLocalStorage(key) {
+          return JSON.parse(localStorage.getItem(key));
+        }
 
-        function getSettings() {
-          return JSON.parse(localStorage.getItem("settings"));
+        function setLocalStorage(key, value) {
+          localStorage.setItem(key, JSON.stringify(value));
         }
       </script>
     </div>
