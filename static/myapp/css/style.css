@@ -21,22 +21,13 @@ body {
 }
 
 #selected-points-container {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 100px; /* space between tables */
-  padding: 50px;
-  flex-wrap: wrap;
-  overflow-y: auto;
-  overflow-x: auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px
 }
 
-.table-wrapper {
-  flex: 1;
-  min-width: 300px;
-  flex-basis: 45%;
-  flex-shrink: 0;
-  margin-bottom: 20;
+.shared-wrapper {
+  width: 50%;
 }
 
 table {
