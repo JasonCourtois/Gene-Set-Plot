@@ -43,6 +43,7 @@
           let full_graph_data = getLocalStorage("data");
           let graph_data = {};
           let camera = localStorage.getItem("camera");
+          let selected = localStorage.getItem("selected");
           var myPlot = document.getElementById("plot-container");
 
           keys.forEach((key) => {
@@ -76,16 +77,52 @@
             width: Math.max(window.innerWidth - 50, 300),
           };
 
+          let config = {
+            edits: {
+              annotationTail: true,
+              annotationText: true,
+              axisTitleText: true,
+              colorbarTitleText: true,
+            },
+          };
+
+          let annotations = [];
+
+          layout.annotaions = [];
+
+          if (selected !== null) {
+            selected = JSON.parse(selected);
+            for (let i = 0; i < selected.length; i++) {
+              let pointNumber = selected[i]["pointNumber"];
+              let annotation = {
+                x: full_graph_data["X"][pointNumber],
+                y: full_graph_data["Y"][pointNumber],
+                xref: "x",
+                yref: "y",
+                text: full_graph_data["setName"][pointNumber],
+                showarrow: true,
+                arrowhead: 7,
+                ax: 0,
+                ay: -40,
+              };
+              annotations.push(annotation);
+            }
+            console.log(annotations);
+          }
+
+          layout.annotations = annotations;
+
           if (camera) {
             camera = JSON.parse(camera);
             layout.xaxis = camera["xaxis"];
             layout.yaxis = camera["yaxis"];
-            Plotly.newPlot("plot-container", [trace], layout);
+            Plotly.newPlot("plot-container", [trace], layout, config);
           } else {
             Plotly.newPlot(
               "plot-container",
               [makeTrace(full_graph_data, settings)],
-              layout
+              layout,
+              config
             );
             camera = {
               xaxis: {
@@ -100,8 +137,10 @@
               },
             };
             setLocalStorage("camera", camera);
-            Plotly.newPlot("plot-container", [trace], layout);
-            Plotly.relayout("plot-container", camera);
+            layout.xaxis = camera.xaxis;
+            layout.yaxis = camera.yaxis;
+            console.log(myPlot.data[0]);
+            Plotly.newPlot("plot-container", [trace], layout, config);
           }
 
           // Handles selecting and unselecting data
@@ -246,6 +285,8 @@
                   text: "Q-Value",
                 },
               },
+              cmax: settings["colorscaleMax"],
+              cmin: settings["colorscaleMin"],
               size: settings["pointSize"],
             },
           };

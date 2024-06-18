@@ -16,17 +16,17 @@ function updateContent() {
     clearTable(1, 2);
     return;
   } else if (selecteditems.length === 1) {
+    set1 = selecteditems[0]["molecules"];
     clearTable(2, 2);
   } else {
-    console.log(selecteditems);
     set1 = new Set(selecteditems[0]["molecules"].split(" "));
     set2 = new Set(selecteditems[1]["molecules"].split(" "));
- 
-    let result = findIntersectionAndDifference(set1, set2)
 
-    shared = [...result[0]].join(" ")
-    set1 = [...result[1]].join(" ")
-    set2 = [...result[2]].join(" ")
+    let result = findIntersectionAndDifference(set1, set2);
+
+    shared = [...result[0]].join(" ");
+    set1 = [...result[1]].join(" ");
+    set2 = [...result[2]].join(" ");
   }
 
   for (let i = 0; i < selecteditems.length; i++) {
@@ -36,7 +36,11 @@ function updateContent() {
 
     qvalue.innerHTML = selecteditems[i]["qValue"];
     set_name.innerHTML = "Name: " + selecteditems[i]["setName"];
-    molecules.innerHTML = selecteditems[i]["molecules"];
+    if (i === 0) {
+      molecules.innerHTML = set1;
+    } else {
+      molecules.innerHTML = set2;
+    }
   }
 }
 
@@ -46,7 +50,6 @@ updateContent();
 // Listen for changes in local storage and update content accordingly
 window.addEventListener("storage", function (e) {
   if (e.key === "selected") {
-    console.log("bruh?");
     updateContent();
   }
 });
@@ -66,7 +69,6 @@ function findIntersectionAndDifference(set1, set2) {
   const intersection = new Set();
   const difference1 = new Set();
   const difference2 = set2;
-  console.log(set2);
   for (let i of set1) {
     if (set2.has(i)) {
       intersection.add(i);
