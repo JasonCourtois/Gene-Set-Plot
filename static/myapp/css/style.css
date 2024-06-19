@@ -84,18 +84,18 @@ body {
 }
 
 #selected-points-container {
-  padding: 3%;
-  display: grid;
-  gap: 20px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-.table-wrapper {
-  box-sizing: border-box;
+.table-wrapper{
+  width: 30%;
+  margin: 20px;
 }
-
 table {
-  width: 100%;
-  table-layout: auto;
+  table-layout: fixed;
   border-collapse: collapse;
   background-color: #ffffff;
   border: 1px solid #ddd;
@@ -118,5 +118,5 @@ tbody th {
   background-color: #77a5c2;
   text-align: center;
   vertical-align: top;
-  width: 10px;
+  width: 10%;
 }

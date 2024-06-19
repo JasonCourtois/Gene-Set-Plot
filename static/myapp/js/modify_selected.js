@@ -86,3 +86,7 @@ let iframe = document.getElementById("graph").contentWindow;
 function clearSelected() {
   iframe.clearSelected();
 }
+
+function toggleLabels() {
+  iframe.toggleLabels();
+}

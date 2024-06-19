@@ -28,7 +28,7 @@
 
         // Draw initial graph
         async function main() {
-          if (localStorage.getItem("data") === null) {
+          if (getLocalStorage("data") === null) {
             await getUmapData("");
           }
           graph();
@@ -42,15 +42,17 @@
           let settings = getLocalStorage("settings");
           let full_graph_data = getLocalStorage("data");
           let graph_data = {};
-          let camera = localStorage.getItem("camera");
-          let selected = localStorage.getItem("selected");
+          let camera = getLocalStorage("camera");
+          let selected = getLocalStorage("selected");
           var myPlot = document.getElementById("plot-container");
+          let annotations = getLocalStorage("annotations");
 
           keys.forEach((key) => {
             graph_data[key] = [];
           });
 
           graph_data["color"] = [];
+          graph_data["pointNumber"] = [];
 
           for (let i = 0; i < full_graph_data["X"].length; i++) {
             if (full_graph_data["qValue"][i] <= settings["cutoff"]) {
@@ -58,8 +60,13 @@
                 graph_data[key].push(full_graph_data[key][i]);
               });
               graph_data["color"].push(full_graph_data["color"][i]);
+              graph_data["pointNumber"].push(i);
+            } else {
+              annotations[i].visible = false;
             }
           }
+
+          setLocalStorage(annotations);
 
           // Define the plotly.js scatter plot
           var trace = makeTrace(graph_data, settings);
@@ -86,34 +93,9 @@
             },
           };
 
-          let annotations = [];
-
-          layout.annotaions = [];
-
-          if (selected !== null) {
-            selected = JSON.parse(selected);
-            for (let i = 0; i < selected.length; i++) {
-              let pointNumber = selected[i]["pointNumber"];
-              let annotation = {
-                x: full_graph_data["X"][pointNumber],
-                y: full_graph_data["Y"][pointNumber],
-                xref: "x",
-                yref: "y",
-                text: full_graph_data["setName"][pointNumber],
-                showarrow: true,
-                arrowhead: 7,
-                ax: 0,
-                ay: -40,
-              };
-              annotations.push(annotation);
-            }
-            console.log(annotations);
-          }
-
           layout.annotations = annotations;
 
           if (camera) {
-            camera = JSON.parse(camera);
             layout.xaxis = camera["xaxis"];
             layout.yaxis = camera["yaxis"];
             Plotly.newPlot("plot-container", [trace], layout, config);
@@ -139,18 +121,20 @@
             setLocalStorage("camera", camera);
             layout.xaxis = camera.xaxis;
             layout.yaxis = camera.yaxis;
-            console.log(myPlot.data[0]);
             Plotly.newPlot("plot-container", [trace], layout, config);
           }
 
           // Handles selecting and unselecting data
 
+          myPlot.on("plotly_relayout", function (data) {
+            setLocalStorage("annotations", myPlot.layout.annotations);
+          });
+
           myPlot.on("plotly_click", function (data) {
-            let selected = localStorage.getItem("selected");
+            console.log(data);
+            let selected = getLocalStorage("selected");
             settings = getLocalStorage("settings");
-            if (selected !== null) {
-              selected = JSON.parse(selected);
-            } else {
+            if (selected === null) {
               selected = [];
             }
 
@@ -203,16 +187,44 @@
               .then((data) => {
                 localStorage.removeItem("camera");
                 // Object to store arrays
-                const dataStorage = {};
+                let dataStorage = {};
 
-                // Transform the JSON data into arrays dynamically
                 keys.forEach((key) => {
-                  dataStorage[key] = data.map((d) => d[key]);
+                  dataStorage[key] = [];
                 });
-                dataStorage["color"] = data.map((d) => d["qValue"]);
+                dataStorage["color"] = [];
+                dataStorage["pointNumber"] = [];
+
+                for (let i = 0; i < data.length; i++) {
+                  keys.forEach((key) => {
+                    dataStorage[key].push(data[i][key]);
+                  });
+                  dataStorage["color"].push(data[i]["qValue"]);
+                  dataStorage["pointNumber"].push(i);
+                }
 
                 // Store the entire data object in localStorage as JSON string
                 setLocalStorage("data", dataStorage);
+
+                let annotations = [];
+
+                for (let i = 0; i < dataStorage["X"].length; i++) {
+                  let annotation = {
+                    x: dataStorage["X"][i],
+                    y: dataStorage["Y"][i],
+                    xref: "x",
+                    yref: "y",
+                    text: dataStorage["setName"][i],
+                    showarrow: true,
+                    arrowhead: 0,
+                    ax: 0,
+                    ay: -40,
+                    visible: false,
+                  };
+                  annotations.push(annotation);
+                }
+
+                setLocalStorage("annotations", annotations);
                 resolve();
               })
               .catch((error) => {
@@ -271,9 +283,12 @@
             y: data["Y"],
             mode: "markers",
             type: "scatter",
-            customdata: data["qValue"],
+            customdata: data["qValue"].map((qValue, index) => [
+              qValue,
+              data["pointNumber"][index],
+            ]),
             hovertemplate:
-              "X: %{x}<br>Y: %{y}<br>qValue: %{customdata}<extra></extra>", // Format hover text
+              "X: %{x}<br>Y: %{y}<br>qValue: %{customdata[0]}<extra></extra>", // Format hover text
             marker: {
               color: data["color"],
               colorscale: [
@@ -295,8 +310,8 @@
 
         // Clear out selected items
         function clearSelected() {
-          let graph_data = JSON.parse(localStorage.getItem("data"));
-          let selected_points = JSON.parse(localStorage.getItem("selected"));
+          let graph_data = getLocalStorage("data");
+          let selected_points = getLocalStorage("selected");
           if (selected_points === null) {
             selected_points = [];
           }
@@ -307,6 +322,21 @@
           }
           localStorage.setItem("selected", "[]");
           setLocalStorage("data", graph_data);
+          graph();
+        }
+
+        let labelState = true;
+
+        function toggleLabels() {
+          let data =
+            document.getElementById("plot-container").data[0].customdata;
+          let annotations = getLocalStorage("annotations");
+          console.log(data);
+          for (let i = 0; i < data.length; i++) {
+            annotations[data[i][1]].visible = labelState;
+          }
+          labelState = !labelState;
+          setLocalStorage("annotations", annotations);
           graph();
         }
 
