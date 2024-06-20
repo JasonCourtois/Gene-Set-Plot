@@ -148,8 +148,6 @@
               let normalColor = full_graph_data["qValue"][pointNumber];
               full_graph_data["color"][pointNumber] = normalColor;
               unselect = true;
-            } else if (selected.length >= 2) {
-              return;
             } else {
               full_graph_data["color"][pointNumber] = settings["selectedColor"];
             }

@@ -1,46 +1,30 @@
+let tableContainer = document.getElementById("selected-points-container");
+
 function updateContent() {
   let selecteditems = localStorage.getItem("selected");
 
   if (selecteditems !== null) {
     selecteditems = JSON.parse(selecteditems);
   } else {
-    clearTable(1, 2);
-    return;
+    selecteditems = [];
+    localStorage.setItem("selected", JSON.stringify(selecteditems));
   }
 
-  let shared = new Set();
-  let set1 = "";
-  let set2 = "";
+  let instersection = new Set();
 
-  if (selecteditems.length === 0) {
-    clearTable(1, 2);
-    return;
-  } else if (selecteditems.length === 1) {
-    set1 = selecteditems[0]["molecules"];
-    clearTable(2, 2);
-  } else {
-    set1 = new Set(selecteditems[0]["molecules"].split(" "));
-    set2 = new Set(selecteditems[1]["molecules"].split(" "));
+  tableContainer.innerHTML = "";
 
-    let result = findIntersectionAndDifference(set1, set2);
-    shared = result[0]
-    set1 = [...result[1]].join(" ");
-    set2 = [...result[2]].join(" ");
-  }
-  
+  // Compare all sets in selected items and find the shared molecules
   for (let i = 0; i < selecteditems.length; i++) {
-    let qvalue = document.getElementById("qvalue-" + (i + 1));
-    let set_name = document.getElementById("set-name-" + (i + 1));
-    let molecules = document.getElementById("molecules-" + (i + 1));
-    qvalue.innerHTML = selecteditems[i]["qValue"];
-    set_name.innerHTML = "Name: " + selecteditems[i]["setName"];
-    let moleculeString = selecteditems[i]["molecules"].split(" ");
-    for (let j = 0; j < moleculeString.length; j++) {
-      if (shared.has(moleculeString[j])) {
-        moleculeString[j] = "<b>" + moleculeString[j] + "</b>"
-      }
+    for (let j = 1 + 1; j < selecteditems.length; j++) {
+      let set1 = new Set(selecteditems[i]["molecules"].split(" "));
+      let set2 = new Set(selecteditems[j]["molecules"].split(" "));
+      instersection = findIntersection(set1, set2, intersection);
     }
-    molecules.innerHTML = moleculeString.join(" ");
+  }
+
+  for (let i = 0; i < selecteditems.length; i++) {
+    tableCreator(selecteditems[i], instersection);
   }
 }
 
@@ -54,31 +38,66 @@ window.addEventListener("storage", function (e) {
   }
 });
 
-function clearTable(start, stop) {
-  for (let i = start; i <= stop; i++) {
-    let qvalue = document.getElementById("qvalue-" + i);
-    qvalue.innerHTML = "";
-    let set_name = document.getElementById("set-name-" + i);
-    set_name.innerHTML = "Name";
-    let molecules = document.getElementById("molecules-" + i);
-    molecules.innerHTML = "";
-  }
+function tableCreator(selectedPoint, intersection) {
+  const table = document.createElement("table");
+
+  // Create header for whole table - creates that first row that has the name of gene set
+  const tableHeader = document.createElement("thead");
+  const firstRow = document.createElement("tr");
+  const setName = document.createElement("th");
+  setName.colSpan = 2;
+  setName.textContent = selectedPoint["setName"];
+  firstRow.appendChild(setName);
+  tableHeader.appendChild(firstRow);
+  table.appendChild(tableHeader);
+
+  // tableBody had rows of the data
+  const tableBody = document.createElement("tbody");
+  // Create second row in table
+  const secondRow = document.createElement("tr");
+  const qValueHeader = document.createElement("th");
+  qValueHeader.textContent = "Q-Value";
+  const qValue = document.createElement("td");
+  qValue.textContent = selectedPoint["qValue"];
+  secondRow.appendChild(qValueHeader);
+  secondRow.appendChild(qValue);
+  tableBody.appendChild(secondRow);
+
+  const thirdRow = document.createElement("tr");
+  const moleculesHeader = document.createElement("th");
+  moleculesHeader.textContent = "Molecules";
+  const molecules = document.createElement("td");
+  molecules.textContent = boldSharedGenes(
+    selectedPoint["molecules"],
+    intersection
+  );
+  thirdRow.appendChild(moleculesHeader);
+  thirdRow.appendChild(molecules);
+  tableBody.appendChild(thirdRow);
+
+  table.appendChild(tableBody);
+  tableContainer.appendChild(table);
 }
 
-function findIntersectionAndDifference(set1, set2) {
-  const intersection = new Set();
-  const difference1 = new Set();
-  const difference2 = set2;
+function boldSharedGenes(molecules, intersection) {
+  let moleculeList = molecules.split(" ");
+
+  for (let i = 0; i < moleculeList.length; i++) {
+    if (intersection.has(moleculeList[i])) {
+      moleculeList[i] = "<b>" + moleculeList[j] + "</b>";
+    }
+  }
+  return moleculeList.join(" ");
+}
+
+function findIntersection(set1, set2, intersection) {
   for (let i of set1) {
     if (set2.has(i)) {
       intersection.add(i);
-      difference2.delete(i);
-    } else {
-      difference1.add(i);
     }
   }
 
-  return [intersection, difference1, difference2];
+  return intersection;
 }
 
 let iframe = document.getElementById("graph").contentWindow;
