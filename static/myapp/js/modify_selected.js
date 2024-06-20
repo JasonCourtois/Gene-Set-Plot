@@ -8,7 +8,7 @@ function updateContent() {
     return;
   }
 
-  let shared = "";
+  let shared = new Set();
   let set1 = "";
   let set2 = "";
 
@@ -23,24 +23,24 @@ function updateContent() {
     set2 = new Set(selecteditems[1]["molecules"].split(" "));
 
     let result = findIntersectionAndDifference(set1, set2);
-
-    shared = [...result[0]].join(" ");
+    shared = result[0]
     set1 = [...result[1]].join(" ");
     set2 = [...result[2]].join(" ");
   }
-
+  
   for (let i = 0; i < selecteditems.length; i++) {
     let qvalue = document.getElementById("qvalue-" + (i + 1));
     let set_name = document.getElementById("set-name-" + (i + 1));
     let molecules = document.getElementById("molecules-" + (i + 1));
-
     qvalue.innerHTML = selecteditems[i]["qValue"];
     set_name.innerHTML = "Name: " + selecteditems[i]["setName"];
-    if (i === 0) {
-      molecules.innerHTML = set1;
-    } else {
-      molecules.innerHTML = set2;
+    let moleculeString = selecteditems[i]["molecules"].split(" ");
+    for (let j = 0; j < moleculeString.length; j++) {
+      if (shared.has(moleculeString[j])) {
+        moleculeString[j] = "<b>" + moleculeString[j] + "</b>"
+      }
     }
+    molecules.innerHTML = moleculeString.join(" ");
   }
 }
 

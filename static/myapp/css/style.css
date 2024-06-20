@@ -16,7 +16,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  height: 700px;
+  height: 100vh;
   flex-shrink: 0;
 }
 
@@ -35,7 +35,7 @@ body {
   padding: 20px;
   margin: 20px;
   margin-right: 50px;
-  width: 30%;
+  width: 20%;
 }
 
 .settings {

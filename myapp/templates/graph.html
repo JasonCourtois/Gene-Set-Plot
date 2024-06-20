@@ -131,7 +131,6 @@
           });
 
           myPlot.on("plotly_click", function (data) {
-            console.log(data);
             let selected = getLocalStorage("selected");
             settings = getLocalStorage("settings");
             if (selected === null) {
@@ -220,6 +219,10 @@
                     ax: 0,
                     ay: -40,
                     visible: false,
+                    arrowwidth: 0.7,
+                    font: {
+                      size: 13,
+                    },
                   };
                   annotations.push(annotation);
                 }
@@ -331,7 +334,6 @@
           let data =
             document.getElementById("plot-container").data[0].customdata;
           let annotations = getLocalStorage("annotations");
-          console.log(data);
           for (let i = 0; i < data.length; i++) {
             annotations[data[i][1]].visible = labelState;
           }

@@ -6,7 +6,7 @@ def jaccard_distance(set1, set2):
     return 1 - (len(set1.intersection(set2)) / len(set1.union(set2)))
 
 def umap_reduction(umapSettings):
-    file_path = 'C:\\Users\\jcour\\Work Github\\Gene-Set-Visualizer\\static\\enrichment-GO.tsv'
+    file_path = 'C:\\Users\\jcour\\Documents\\Work Github\\Gene-Set-Visualizer\\static\\enrichment-GO.tsv'
     df = pd.read_csv(file_path, sep='\t', header=0)
 
     n = df.shape[0]
