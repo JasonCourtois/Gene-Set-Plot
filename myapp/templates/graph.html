@@ -22,161 +22,212 @@
           settings            This is a dictonary contianing.. finish when settings is done
 
         */
-        const keys = ["X", "Y", "qValue", "setName", "setSize", "molecules"];
 
+        // Main peices of data for all points
+        const dataKeys = [
+          "X",
+          "Y",
+          "qValue",
+          "setName",
+          "setSize",
+          "molecules",
+          "color",
+          "pointNumber",
+        ];
+
+        const myPlot = document.getElementById("plot-container"); // Get refrence to where graph will be drawn
+
+        // Entry Point
         main();
 
         // Draw initial graph
         async function main() {
           if (getLocalStorage("data") === null) {
+            // Check if data exists, if not then get it, then draw graph
             await getUmapData("");
           }
           graph();
-          // Add box shadow around graph to make it pop
+
           let mainDisplay = document.getElementsByClassName("user-select-none");
-          mainDisplay[0].style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.1)";
+          mainDisplay[0].style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.1)"; // Add box shadow around graph to make it pop
         }
 
         // Draws graph based on current data stored in local storage key data and settings
         function graph() {
-          let settings = getLocalStorage("settings");
-          let full_graph_data = getLocalStorage("data");
-          let graph_data = {};
+          let settings = getLocalStorage("settings"); // Getting resources from local storage
+          let fullGraphData = getLocalStorage("data");
           let camera = getLocalStorage("camera");
-          let selected = getLocalStorage("selected");
-          var myPlot = document.getElementById("plot-container");
-          let annotations = getLocalStorage("annotations");
 
-          keys.forEach((key) => {
-            graph_data[key] = [];
+          let displayedGraphData = {}; // Create Object to store data used for output
+
+          dataKeys.forEach((key) => {
+            displayedGraphData[key] = [];
           });
 
-          graph_data["color"] = [];
-          graph_data["pointNumber"] = [];
+          let numberOfPoitns = fullGraphData["X"].length; // Get number of points, could have used any key here as they are all the same size
 
-          for (let i = 0; i < full_graph_data["X"].length; i++) {
-            if (full_graph_data["qValue"][i] <= settings["cutoff"]) {
-              keys.forEach((key) => {
-                graph_data[key].push(full_graph_data[key][i]);
+          for (let i = 0; i < numberOfPoitns; i++) {
+            // Loop through full graph data, ignoring anything below cuttoff and adding the rest
+            let belowCutoff = fullGraphData["qValue"][i] <= settings["cutoff"];
+            if (belowCutoff) {
+              dataKeys.forEach((key) => {
+                displayedGraphData[key].push(fullGraphData[key][i]);
               });
-              graph_data["color"].push(full_graph_data["color"][i]);
-              graph_data["pointNumber"].push(i);
-            } else {
-              annotations[i].visible = false;
             }
           }
 
-          setLocalStorage(annotations);
+          let trace = makeTrace(displayedGraphData, settings); // Create a plotly trace, this contians all data for each point on graph based on displayedGraphData
 
-          // Define the plotly.js scatter plot
-          var trace = makeTrace(graph_data, settings);
-
-          var layout = {
+          let layout = {
+            // Define layout properties of graoh
             title: "UMAP projection of the Gene dataset",
             hovermode: "closest",
             xaxis: {
-              title: "X",
+              title: "UMAP-1",
             },
             yaxis: {
-              title: "Y",
+              title: "UMAP-2",
             },
             height: Math.max(window.innerHeight - 50, 300),
             width: Math.max(window.innerWidth - 50, 300),
           };
 
           let config = {
+            // Allow the annotations to be editable and disable default doubleclick as it causes zooming in to not work
             edits: {
               annotationTail: true,
               annotationText: true,
-              axisTitleText: true,
-              colorbarTitleText: true,
             },
+            doubleClick: false,
           };
 
-          layout.annotations = annotations;
-
           if (camera) {
+            // If camera settings exist, apply them here
             layout.xaxis = camera["xaxis"];
             layout.yaxis = camera["yaxis"];
             Plotly.newPlot("plot-container", [trace], layout, config);
           } else {
+            // If they dont exist, create them using fullGraphData (this includes points above cutoff)
             Plotly.newPlot(
               "plot-container",
-              [makeTrace(full_graph_data, settings)],
+              [makeTrace(fullGraphData, settings)],
               layout,
               config
             );
+
             camera = {
+              // Set camera to show all points in full graph by manually setting range
               xaxis: {
-                title: "X",
+                title: "UMAP-1",
                 autorange: false,
                 range: myPlot.layout.xaxis.range,
               },
               yaxis: {
-                title: "Y",
+                title: "UMAP-2",
                 autorange: false,
                 range: myPlot.layout.yaxis.range,
               },
             };
-            setLocalStorage("camera", camera);
+
+            setLocalStorage("camera", camera); // Save and apply settings
             layout.xaxis = camera.xaxis;
             layout.yaxis = camera.yaxis;
             Plotly.newPlot("plot-container", [trace], layout, config);
           }
 
-          // Handles selecting and unselecting data
-
+          // DEBUG for now
           myPlot.on("plotly_relayout", function (data) {
-            setLocalStorage("annotations", myPlot.layout.annotations);
-          });
-
-          myPlot.on("plotly_click", function (data) {
-            let selected = getLocalStorage("selected");
-            settings = getLocalStorage("settings");
-            if (selected === null) {
-              selected = [];
-            }
-
-            var pointNumber = data.points[0].pointNumber;
-
-            let unselect = false;
-
-            if (
-              full_graph_data["color"][pointNumber] ===
-              settings["selectedColor"]
-            ) {
-              let normalColor = full_graph_data["qValue"][pointNumber];
-              full_graph_data["color"][pointNumber] = normalColor;
-              unselect = true;
-            } else {
-              full_graph_data["color"][pointNumber] = settings["selectedColor"];
-            }
-
-            setLocalStorage("data", full_graph_data);
-
-            let selectedPoint = {
-              pointNumber: pointNumber,
-              qValue: full_graph_data["qValue"][pointNumber],
-              molecules: full_graph_data["molecules"][pointNumber],
-              setName: full_graph_data["setName"][pointNumber],
-            };
-
-            if (unselect) {
-              for (let i = 0; i < selected.length; i++) {
-                if (selected[i]["pointNumber"] === pointNumber) {
-                  selected.splice(i, 1);
-                }
-              }
-            } else {
-              selected.push(selectedPoint);
-            }
-
-            setLocalStorage("selected", selected);
-            graph();
+            //console.log(myPlot.layout.annotations);
           });
         }
 
-        // Get new graph data from UMAP on backedn
+        // Handles selecting and unselecting data
+        myPlot.on("plotly_click", function (event) {
+          let selected = getLocalStorage("selected"); // Get needed data from local storage
+          let fullGraphData = getLocalStorage("data");
+          let settings = getLocalStorage("settings");
+          if (selected === null) {
+            selected = [];
+          }
+
+          let point = event.points[0]; // Get the point that was clicked
+
+          let curveNumber = point.curveNumber; // Get point number, curve number of graph, and make list of colors
+          let colors = point.data.marker.color.slice();
+          let pointNumber = point.pointNumber;
+
+          console.log(colors);
+          console.log(fullGraphData["color"]);
+
+          let unselect = false; // Assume point isn't being unselected
+
+          if (
+            fullGraphData["color"][pointNumber] === settings["selectedColor"] // If the point is already selected (color is highlighted)
+          ) {
+            let normalColor = fullGraphData["qValue"][pointNumber]; // Get normal color and update the local storage data and new color array
+            fullGraphData["color"][pointNumber] = normalColor;
+            colors[pointNumber] = normalColor;
+            unselect = true;
+          } else {
+            colors[pointNumber] = settings["selectedColor"];
+            fullGraphData["color"][pointNumber] = settings["selectedColor"];
+          }
+
+          setLocalStorage("data", fullGraphData);
+
+          let selectedPoint = {
+            pointNumber: pointNumber,
+            qValue: fullGraphData["qValue"][pointNumber],
+            molecules: fullGraphData["molecules"][pointNumber],
+            setName: fullGraphData["setName"][pointNumber],
+          };
+
+          if (unselect) {
+            for (let i = 0; i < selected.length; i++) {
+              if (selected[i]["pointNumber"] === pointNumber) {
+                selected.splice(i, 1);
+              }
+            }
+          } else {
+            selected.push(selectedPoint);
+          }
+
+          let update = {
+            marker: {
+              color: colors,
+              colorbar: {
+                title: {
+                  text: "Q-Value",
+                },
+              },
+              colorscale: [
+                [0.0, settings["pointEndColor"]],
+                [1.0, settings["pointStartColor"]],
+              ],
+              colorbar: {
+                title: {
+                  text: "Q-Value",
+                },
+              },
+              cmax: settings["colorscaleMax"],
+              cmin: settings["colorscaleMin"],
+              size: settings["pointSize"],
+            },
+          };
+
+          setLocalStorage("selected", selected);
+          Plotly.restyle("plot-container", update, [curveNumber]);
+        });
+
+        myPlot.on("plotly_doubleclick", () => {
+          camera = getLocalStorage("camera");
+          Plotly.relayout("plot-container", {
+            xaxis: camera["xaxis"],
+            yaxis: camera["yaxis"],
+          });
+        });
+
+        // Get new graph data from UMAP on backend
         function getUmapData(umapSettings) {
           return new Promise((resolve, reject) => {
             fetch("/read-output/" + umapSettings)
@@ -186,46 +237,24 @@
                 // Object to store arrays
                 let dataStorage = {};
 
-                keys.forEach((key) => {
+                dataKeys.forEach((key) => {
                   dataStorage[key] = [];
                 });
-                dataStorage["color"] = [];
-                dataStorage["pointNumber"] = [];
 
                 for (let i = 0; i < data.length; i++) {
-                  keys.forEach((key) => {
-                    dataStorage[key].push(data[i][key]);
+                  dataKeys.forEach((key) => {
+                    if (key === "color") {
+                      dataStorage["color"].push(data[i]["qValue"]);
+                    } else if (key === "pointNumber") {
+                      dataStorage["pointNumber"].push(i);
+                    } else {
+                      dataStorage[key].push(data[i][key]);
+                    }
                   });
-                  dataStorage["color"].push(data[i]["qValue"]);
-                  dataStorage["pointNumber"].push(i);
                 }
 
                 // Store the entire data object in localStorage as JSON string
                 setLocalStorage("data", dataStorage);
-
-                let annotations = [];
-
-                for (let i = 0; i < dataStorage["X"].length; i++) {
-                  let annotation = {
-                    x: dataStorage["X"][i],
-                    y: dataStorage["Y"][i],
-                    xref: "x",
-                    yref: "y",
-                    text: dataStorage["setName"][i],
-                    showarrow: true,
-                    arrowhead: 0,
-                    ax: 0,
-                    ay: -40,
-                    visible: false,
-                    arrowwidth: 0.7,
-                    font: {
-                      size: 13,
-                    },
-                  };
-                  annotations.push(annotation);
-                }
-
-                setLocalStorage("annotations", annotations);
                 resolve();
               })
               .catch((error) => {
@@ -233,7 +262,6 @@
                 reject(error);
               });
           });
-          // Load the JSON data
         }
 
         // When settings are changed, apply them
@@ -279,7 +307,7 @@
         };
 
         function makeTrace(data, settings) {
-          var trace = {
+          let trace = {
             x: data["X"],
             y: data["Y"],
             mode: "markers",
@@ -311,7 +339,7 @@
 
         // Clear out selected items
         function clearSelected() {
-          let graph_data = getLocalStorage("data");
+          let fullGraphData = getLocalStorage("data");
           let selected_points = getLocalStorage("selected");
           if (selected_points === null) {
             selected_points = [];
@@ -319,25 +347,98 @@
           for (let i = 0; i < selected_points.length; i++) {
             point_number = selected_points[i]["pointNumber"];
             qvalue = selected_points[i]["qValue"];
-            graph_data["color"][point_number] = qvalue;
+            fullGraphData["color"][point_number] = qvalue;
           }
           localStorage.setItem("selected", "[]");
-          setLocalStorage("data", graph_data);
+          setLocalStorage("data", fullGraphData);
           graph();
         }
 
-        let labelState = true;
-
         function toggleLabels() {
-          let data =
-            document.getElementById("plot-container").data[0].customdata;
-          let annotations = getLocalStorage("annotations");
-          for (let i = 0; i < data.length; i++) {
-            annotations[data[i][1]].visible = labelState;
+          let data = document.getElementById("plot-container").data[0];
+          let fullData = getLocalStorage("data");
+          let annotations = [];
+          
+          if (myPlot.layout.annotations !== undefined && myPlot.layout.annotations.length !== 0) {
+            let layout = {
+              annotations: annotations,
+            };
+            Plotly.relayout("plot-container", layout);
+            return;
           }
-          labelState = !labelState;
-          setLocalStorage("annotations", annotations);
-          graph();
+          for (let i = 0; i < data["x"].length; i++) {
+            let annotation = {
+              x: data["x"][i],
+              y: data["y"][i],
+              text: fullData["setName"][data["customdata"][i][1]],
+              showarrow: true,
+              arrowhead: 0,
+              ax: data["x"][i],
+              ay: data["y"][i] + 0.5,
+              axref: "x",
+              ayref: "y",
+              visible: true,
+              arrowwidth: 0.7,
+              font: {
+                size: 13,
+              },
+            };
+            let radius = 1;
+            let attemptsWithCurrentRadius = 0;
+            annotations.push(annotation);
+            while (overlapping(annotations[i], annotations)) {
+              annotations[i].ay =
+                annotations[i].y +
+                radius *
+                  Math.sin(
+                    Math.PI / 2 - (Math.PI / 7) * attemptsWithCurrentRadius
+                  );
+              annotations[i].ax =
+                annotations[i].x +
+                radius *
+                  Math.cos(
+                    Math.PI / 2 - (Math.PI / 7) * attemptsWithCurrentRadius
+                  );
+              attemptsWithCurrentRadius += 1;
+              if (attemptsWithCurrentRadius >= 13) {
+                radius += 0.2;
+                attemptsWithCurrentRadius = 0;
+              }
+            }
+          }
+
+          let layout = {
+            annotations: annotations,
+          };
+          Plotly.relayout("plot-container", layout);
+        }
+
+        function overlapping(annotation, annotations) {
+          let yRange = 0.3;
+          let xRange = 1.5;
+          let overlapOnY = false;
+          let overlapOnX = false;
+
+          for (let i = 0; i < annotations.length - 1; i++) {
+            overlapOnY = checkOverlapOnAxis(
+              annotation.ay,
+              annotations[i].ay,
+              yRange
+            );
+            overlapOnX = checkOverlapOnAxis(
+              annotation.ax,
+              annotations[i].ax,
+              xRange
+            );
+            if (overlapOnY && overlapOnX) {
+              return true;
+            }
+          }
+          return false;
+        }
+
+        function checkOverlapOnAxis(first, second, range) {
+          return first > second - range && first < second + range;
         }
 
         function getLocalStorage(key) {

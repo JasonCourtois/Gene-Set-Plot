@@ -10,21 +10,20 @@ function updateContent() {
     localStorage.setItem("selected", JSON.stringify(selecteditems));
   }
 
-  let instersection = new Set();
+  let intersection = new Set();
 
   tableContainer.innerHTML = "";
-
   // Compare all sets in selected items and find the shared molecules
   for (let i = 0; i < selecteditems.length; i++) {
-    for (let j = 1 + 1; j < selecteditems.length; j++) {
+    for (let j = i + 1; j < selecteditems.length; j++) {
       let set1 = new Set(selecteditems[i]["molecules"].split(" "));
       let set2 = new Set(selecteditems[j]["molecules"].split(" "));
-      instersection = findIntersection(set1, set2, intersection);
+      intersection = findIntersection(set1, set2, intersection);
     }
   }
 
   for (let i = 0; i < selecteditems.length; i++) {
-    tableCreator(selecteditems[i], instersection);
+    tableCreator(selecteditems[i], intersection);
   }
 }
 
@@ -39,6 +38,8 @@ window.addEventListener("storage", function (e) {
 });
 
 function tableCreator(selectedPoint, intersection) {
+  const tableWrapper = document.createElement("div");
+  tableWrapper.classList.add("table-wrapper");
   const table = document.createElement("table");
 
   // Create header for whole table - creates that first row that has the name of gene set
@@ -53,7 +54,8 @@ function tableCreator(selectedPoint, intersection) {
 
   // tableBody had rows of the data
   const tableBody = document.createElement("tbody");
-  // Create second row in table
+
+  // Create second row in table containing the q-value
   const secondRow = document.createElement("tr");
   const qValueHeader = document.createElement("th");
   qValueHeader.textContent = "Q-Value";
@@ -63,11 +65,12 @@ function tableCreator(selectedPoint, intersection) {
   secondRow.appendChild(qValue);
   tableBody.appendChild(secondRow);
 
+  // Creates 3rd row contianing molecules
   const thirdRow = document.createElement("tr");
   const moleculesHeader = document.createElement("th");
   moleculesHeader.textContent = "Molecules";
   const molecules = document.createElement("td");
-  molecules.textContent = boldSharedGenes(
+  molecules.innerHTML = boldSharedGenes(
     selectedPoint["molecules"],
     intersection
   );
@@ -76,7 +79,8 @@ function tableCreator(selectedPoint, intersection) {
   tableBody.appendChild(thirdRow);
 
   table.appendChild(tableBody);
-  tableContainer.appendChild(table);
+  tableWrapper.appendChild(table);
+  tableContainer.appendChild(tableWrapper);
 }
 
 function boldSharedGenes(molecules, intersection) {
@@ -84,7 +88,7 @@ function boldSharedGenes(molecules, intersection) {
 
   for (let i = 0; i < moleculeList.length; i++) {
     if (intersection.has(moleculeList[i])) {
-      moleculeList[i] = "<b>" + moleculeList[j] + "</b>";
+      moleculeList[i] = "<b>" + moleculeList[i] + "</b>";
     }
   }
   return moleculeList.join(" ");

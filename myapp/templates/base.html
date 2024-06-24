@@ -30,143 +30,104 @@
       <iframe id="graph" src="{% url 'read_graph' %}" frameborder="0"></iframe>
       <div class="settings-wrapper">
         <div class="settings">
-          <div class="visual-title"><h3>Graph Settings</h3></div>
-          <div class="graph-settings-1">
-            <div class="setting-pair">
-              <label for="point-start-color">Insignificant Color:</label>
-              <input
-                type="color"
-                id="point-start-color"
-                name="point-start-color"
-                value="#CDCDCD"
-              />
+          <form>
+            <div class="graph-settings-header"><h3>Graph Settings</h3></div>
+            <h4>Point Color</h4>
+            <div class="color-options">
+              <div class="option">
+                <label>Least Significant:</label>
+                <input type="color" />
+              </div>
+              <div class="option">
+                <label>Most Significant:</label>
+                <input type="color" />
+              </div>
+              <div class="option">
+                <label>Selected:</label>
+                <input type="color" />
+              </div>
             </div>
-            <div class="setting-pair">
-              <label for="point-end-color">Significant Color:</label>
-              <input
-                type="color"
-                id="point-end-color"
-                name="point-end-color"
-                value="#000000"
-              />
+            <h4>P-Value Range</h4>
+            <div class="option">
+              <label>Maximum:</label>
+              <input type="numeric" />
             </div>
-            <div class="setting-pair">
-              <label for="selected-color">Selected Color:</label>
-              <input
-                type="color"
-                id="selected-color"
-                name="selected-color"
-                value="#6bfc03"
-              />
+            <div class="option">
+              <label>Minimum:</label>
+              <input type="numeric" />
             </div>
-            <div class="setting-pair">
-              <label for="point-size">Point Size:</label>
+            <h4>Point Size</h4>
+            <div class="size-options">
+              <input type="radio" id="fixed" name="point-size" value="Fixed" />
+              <label for="fixed">Fixed</label>
               <input
-                type="numeric"
-                id="point-size"
+                type="radio"
+                id="dynamic"
                 name="point-size"
-                value="6"
-                step="0.01"
+                value="Dynamic"
               />
+              <label for="dynamic">Dynamic</label> <label>Size:</label>
+              <input type="numeric" />
             </div>
-            <div class="setting-pair">
-              <label for="cutoff">Cutoff:</label>
-              <input
-                type="numeric"
-                id="cutoff"
-                name="cutoff"
-                value="0.45"
-                step="0.01"
-              />
+            <div class="umap-settings-header"><h3>UMAP Settings</h3></div>
+            <div class="option">
+              <label>Number of Neighbors:</label>
+              <input type="numeric" />
             </div>
-          </div>
-          <div class="graph-settings-2">
-            <div class="setting-pair">
-              <label for="colorscale-max">Colorscale Max:</label>
-              <input
-                type="numeric"
-                id="colorscale-max"
-                name="colorscale-max"
-                value="0.05"
-              />
+            <div class="option">
+              <label>Minimum Distance:</label>
+              <input type="numeric" />
             </div>
-            <div class="setting-pair">
-              <label for="colorscale-min">Colorscale Min:</label>
-              <input
-                type="numeric"
-                id="colorscale-min"
-                name="colorscale-min"
-                value="0"
-              />
+            <div class="option">
+              <label>Seed (0 is random)</label>
+              <input type="numeric" />
             </div>
-          </div>
-          <div class="umap-title"><h3>UMAP Settings</h3></div>
-          <div class="umap-settings">
-            <div class="setting-pair">
-              <label for="neighbors">Neighbors:</label>
-              <input
-                type="numeric"
-                id="neighbors"
-                name="neighbors"
-                value="15"
-                step="1"
-              />
-            </div>
-            <div class="setting-pair">
-              <label for="seed">UMAP Seed (0 is random)</label>
-              <input type="numeric" id="seed" name="seed" value="0" step="1" />
-            </div>
-          </div>
-          <div class="button-container">
-            <button onclick="clearSelected()">Clear Selected</button>
-            <button onclick="updateSettings()">Apply</button>
-            <button onclick="toggleLabels()">Toggle Lables</button>
-          </div>
-          <script src="{% static 'myapp/js/update_settings.js' %}"></script>
+            <script src="{% static 'myapp/js/update_settings.js' %}"></script>
+          </form>
         </div>
       </div>
     </div>
 
-    <div id="selected-points-container">
-      <div class="table-wrapper">
-        <table id="table-1">
-          <thead>
-            <tr>
-              <th id="set-name-1">Name</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th>Q-Value</th>
-              <td id="qvalue-1"></td>
-            </tr>
-            <tr>
-              <th>Molecules</th>
-              <td id="molecules-1"></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="table-wrapper">
-        <table id="table-2">
-          <thead>
-            <tr>
-              <th id="set-name-2">Name</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th>Q-Value</th>
-              <td id="qvalue-2"></td>
-            </tr>
-            <tr>
-              <th>Molecules</th>
-              <td id="molecules-2"></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <div id="selected-points-container"></div>
     <script src="{% static 'myapp/js/modify_selected.js' %}"></script>
   </body>
+  <style>
+    .settings-wrapper {
+      background-color: #ffffff;
+      border: 1px solid #ddd;
+      box-shadow: 0 3px 9px rgba(0, 0, 0, 0.1);
+      border-radius: 7px;
+      height: auto;
+      padding: 20px;
+      margin: 20px;
+      margin-right: 50px;
+      width: 300px;
+    }
+
+    h4 {
+      margin: 0.5em;
+    }
+
+    .graph-settings-header,
+    .umap-settings-header {
+      display: flex;
+      justify-content: center;
+    }
+
+    .option {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px;
+    }
+
+    .option input[type="numeric"] {
+      text-align: right;
+      width: 60px;
+    }
+
+    .graph-settings-header h3 {
+      margin: 0px;
+      margin-bottom: 0.7em;
+    }
+  </style>
 </html>
