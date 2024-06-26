@@ -8,21 +8,6 @@
   <body>
     <div id="plot-container">
       <script>
-        /*
-          Local Storage guide:
-          key                 description
-          data                Data is a dictonary with string keys X, Y, color, molecules, qValue, setName, and setSize.
-                              The values of each of these keys is a list of size n representhing the corresponding value for the nth
-                              gene set. So for example data["X"][23] is the x position of the 23 gene set on the graph
-
-          selected            This is a list of 0 to 2 items. At each index is a dictonary with keys pointNumber, qValue, setName, and molecules.
-                              Here, the item at selected[0] contains all the information on the first selected point, and selected[1] contains
-                              the info for the second point. So if you needed the qVaule of point 1, you could do selectes[0]["qValue"].
-
-          settings            This is a dictonary contianing.. finish when settings is done
-
-        */
-
         // Main peices of data for all points
         const dataKeys = [
           "X",
@@ -36,15 +21,21 @@
         ];
 
         const myPlot = document.getElementById("plot-container"); // Get refrence to where graph will be drawn
+        const spinnerOverlay =
+          window.parent.document.getElementById("loading-spinner");
 
         // Entry Point
         main();
 
         // Draw initial graph
         async function main() {
+          let settings = getLocalStorage("settings");
+          console.log(settings);
           if (getLocalStorage("data") === null) {
+            showSpinner();
             // Check if data exists, if not then get it, then draw graph
-            await getUmapData("");
+            await getUmapData(settings["umap"]);
+            hideSpinner();
           }
           graph();
 
@@ -68,8 +59,11 @@
 
           for (let i = 0; i < numberOfPoitns; i++) {
             // Loop through full graph data, ignoring anything below cuttoff and adding the rest
-            let belowCutoff = fullGraphData["qValue"][i] <= settings["cutoff"];
-            if (belowCutoff) {
+            let belowMaximum =
+              fullGraphData["qValue"][i] <= settings["q-value-maximum"];
+            let aboveMinimum =
+              fullGraphData["qValue"][i] >= settings["q-value-minimum"];
+            if (belowMaximum && aboveMinimum) {
               dataKeys.forEach((key) => {
                 displayedGraphData[key].push(fullGraphData[key][i]);
               });
@@ -139,93 +133,96 @@
           myPlot.on("plotly_relayout", function (data) {
             //console.log(myPlot.layout.annotations);
           });
-        }
 
-        // Handles selecting and unselecting data
-        myPlot.on("plotly_click", function (event) {
-          let selected = getLocalStorage("selected"); // Get needed data from local storage
-          let fullGraphData = getLocalStorage("data");
-          let settings = getLocalStorage("settings");
-          if (selected === null) {
-            selected = [];
-          }
-
-          let point = event.points[0]; // Get the point that was clicked
-
-          let curveNumber = point.curveNumber; // Get point number, curve number of graph, and make list of colors
-          let colors = point.data.marker.color.slice();
-          let pointNumber = point.pointNumber;
-
-          console.log(colors);
-          console.log(fullGraphData["color"]);
-
-          let unselect = false; // Assume point isn't being unselected
-
-          if (
-            fullGraphData["color"][pointNumber] === settings["selectedColor"] // If the point is already selected (color is highlighted)
-          ) {
-            let normalColor = fullGraphData["qValue"][pointNumber]; // Get normal color and update the local storage data and new color array
-            fullGraphData["color"][pointNumber] = normalColor;
-            colors[pointNumber] = normalColor;
-            unselect = true;
-          } else {
-            colors[pointNumber] = settings["selectedColor"];
-            fullGraphData["color"][pointNumber] = settings["selectedColor"];
-          }
-
-          setLocalStorage("data", fullGraphData);
-
-          let selectedPoint = {
-            pointNumber: pointNumber,
-            qValue: fullGraphData["qValue"][pointNumber],
-            molecules: fullGraphData["molecules"][pointNumber],
-            setName: fullGraphData["setName"][pointNumber],
-          };
-
-          if (unselect) {
-            for (let i = 0; i < selected.length; i++) {
-              if (selected[i]["pointNumber"] === pointNumber) {
-                selected.splice(i, 1);
-              }
+          // Handles selecting and unselecting data
+          myPlot.on("plotly_click", function (event) {
+            let selected = getLocalStorage("selected"); // Get needed data from local storage
+            let fullGraphData = getLocalStorage("data");
+            let settings = getLocalStorage("settings");
+            if (selected === null) {
+              selected = [];
             }
-          } else {
-            selected.push(selectedPoint);
-          }
 
-          let update = {
-            marker: {
-              color: colors,
-              colorbar: {
-                title: {
-                  text: "Q-Value",
+            let point = event.points[0]; // Get the point that was clicked
+
+            let curveNumber = point.curveNumber; // Get point number, curve number of graph, and make list of colors
+            let colors = point.data.marker.color.slice();
+            let pointNumber = point.pointNumber;
+            let size = point.data.marker.size.slice();
+
+            let unselect = false; // Assume point isn't being unselected
+
+            if (
+              fullGraphData["color"][pointNumber] === settings["selected-color"] // If the point is already selected (color is highlighted)
+            ) {
+              let normalColor = fullGraphData["qValue"][pointNumber]; // Get normal color and update the local storage data and new color array
+              fullGraphData["color"][pointNumber] = normalColor;
+              colors[pointNumber] = normalColor;
+              unselect = true;
+            } else {
+              colors[pointNumber] = settings["selected-color"];
+              fullGraphData["color"][pointNumber] = settings["selected-color"];
+            }
+
+            setLocalStorage("data", fullGraphData);
+
+            let selectedPoint = {
+              pointNumber: pointNumber,
+              qValue: fullGraphData["qValue"][pointNumber],
+              molecules: fullGraphData["molecules"][pointNumber],
+              setName: fullGraphData["setName"][pointNumber],
+            };
+
+            if (unselect) {
+              for (let i = 0; i < selected.length; i++) {
+                if (selected[i]["pointNumber"] === pointNumber) {
+                  selected.splice(i, 1);
+                }
+              }
+            } else {
+              selected.push(selectedPoint);
+            }
+
+            let update = {
+              marker: {
+                color: colors,
+                colorbar: {
+                  title: {
+                    text: "Q-Value",
+                  },
+                },
+                colorscale: [
+                  [0.0, settings["significant-color"]],
+                  [1.0, settings["insignificant-color"]],
+                ],
+                colorbar: {
+                  title: {
+                    text: "Q-Value",
+                  },
+                },
+                cmax: settings["q-value-maximum"],
+                cmin: settings["q-value-minimum"],
+                size: size,
+                opacity: 1.0,
+                line: {
+                  width: 1,
+                  color: "white",
                 },
               },
-              colorscale: [
-                [0.0, settings["pointEndColor"]],
-                [1.0, settings["pointStartColor"]],
-              ],
-              colorbar: {
-                title: {
-                  text: "Q-Value",
-                },
-              },
-              cmax: settings["colorscaleMax"],
-              cmin: settings["colorscaleMin"],
-              size: settings["pointSize"],
-            },
-          };
+            };
 
-          setLocalStorage("selected", selected);
-          Plotly.restyle("plot-container", update, [curveNumber]);
-        });
-
-        myPlot.on("plotly_doubleclick", () => {
-          camera = getLocalStorage("camera");
-          Plotly.relayout("plot-container", {
-            xaxis: camera["xaxis"],
-            yaxis: camera["yaxis"],
+            setLocalStorage("selected", selected);
+            Plotly.restyle("plot-container", update, [curveNumber]);
           });
-        });
+
+          myPlot.on("plotly_doubleclick", () => {
+            camera = getLocalStorage("camera");
+            Plotly.relayout("plot-container", {
+              xaxis: camera["xaxis"],
+              yaxis: camera["yaxis"],
+            });
+          });
+        }
 
         // Get new graph data from UMAP on backend
         function getUmapData(umapSettings) {
@@ -283,7 +280,7 @@
               // Update selected point colors
               for (let i = 0; i < selected.length; i++) {
                 pointNumber = selected[i]["pointNumber"];
-                graph_data["color"][pointNumber] = settings["selectedColor"];
+                graph_data["color"][pointNumber] = settings["selected-color"];
               }
               setLocalStorage("data", graph_data);
               graph();
@@ -292,7 +289,9 @@
         });
 
         async function applyUmapChange(umapSettings) {
+          showSpinner();
           await getUmapData(umapSettings);
+          hideSpinner();
           graph();
           clearSelected();
         }
@@ -307,31 +306,39 @@
         };
 
         function makeTrace(data, settings) {
+          let size = getSize(data["setSize"], settings);
+
           let trace = {
             x: data["X"],
             y: data["Y"],
             mode: "markers",
             type: "scatter",
+            text: data["setName"],
             customdata: data["qValue"].map((qValue, index) => [
               qValue,
               data["pointNumber"][index],
             ]),
             hovertemplate:
-              "X: %{x}<br>Y: %{y}<br>qValue: %{customdata[0]}<extra></extra>", // Format hover text
+              "Name: %{text}<br>Q-Value: %{customdata[0]}<extra></extra>", // Format hover text
             marker: {
               color: data["color"],
               colorscale: [
-                [0.0, settings["pointEndColor"]],
-                [1.0, settings["pointStartColor"]],
+                [0.0, settings["significant-color"]],
+                [1.0, settings["insignificant-color"]],
               ],
               colorbar: {
                 title: {
                   text: "Q-Value",
                 },
               },
-              cmax: settings["colorscaleMax"],
-              cmin: settings["colorscaleMin"],
-              size: settings["pointSize"],
+              cmax: settings["q-value-maximum"],
+              cmin: settings["q-value-minimum"],
+              size: size,
+              opacity: 1.0,
+              line: {
+                width: 1,
+                color: "white",
+              },
             },
           };
           return trace;
@@ -358,8 +365,11 @@
           let data = document.getElementById("plot-container").data[0];
           let fullData = getLocalStorage("data");
           let annotations = [];
-          
-          if (myPlot.layout.annotations !== undefined && myPlot.layout.annotations.length !== 0) {
+
+          if (
+            myPlot.layout.annotations !== undefined &&
+            myPlot.layout.annotations.length !== 0
+          ) {
             let layout = {
               annotations: annotations,
             };
@@ -383,7 +393,7 @@
                 size: 13,
               },
             };
-            let radius = 1;
+            let radius = 3;
             let attemptsWithCurrentRadius = 0;
             annotations.push(annotation);
             while (overlapping(annotations[i], annotations)) {
@@ -440,6 +450,36 @@
         function checkOverlapOnAxis(first, second, range) {
           return first > second - range && first < second + range;
         }
+        
+        function getSize(sizes, settings) {
+          if (settings["fixed-size"]) {
+            return settings["fixed-size-input"];
+          }
+
+          let minInput = sizes[0];
+          let maxInput = sizes[0];
+          let minOutput = parseFloat(settings["dynamic-size-minimum"]);
+          let maxOutput = parseFloat(settings["dynamic-size-maximum"]);
+
+          for (let i = 1; i < sizes.length; i++) {
+            if (sizes[i] < minInput) {
+              minInput = sizes[i];
+            }
+            if (sizes[i] > maxInput) {
+              maxInput = sizes[i];
+            }
+          }
+
+          let normalizedSizes = [];
+
+          let scale = (maxOutput - minOutput) / (maxInput - minInput);
+
+          for (let i = 0; i < sizes.length; i++) {
+            normalizedSizes.push(minOutput + (sizes[i] - minInput) * scale);
+          }
+      
+          return normalizedSizes;
+        }
 
         function getLocalStorage(key) {
           return JSON.parse(localStorage.getItem(key));
@@ -447,6 +487,14 @@
 
         function setLocalStorage(key, value) {
           localStorage.setItem(key, JSON.stringify(value));
+        }
+
+        function showSpinner() {
+          spinnerOverlay.style.display = "flex";
+        }
+
+        function hideSpinner() {
+          spinnerOverlay.style.display = "none";
         }
       </script>
     </div>

@@ -15,8 +15,8 @@ def umap_reduction(umapSettings):
 
     for i in range(n):
         for j in range (i + 1, n):
-            set1 = set(df.iloc[i, 6].split())
-            set2 = set(df.iloc[j, 6].split())
+            set1 = set(df.loc[i, "Molecules contributed to enrichment"].split())
+            set2 = set(df.loc[j, "Molecules contributed to enrichment"].split())
             dist = jaccard_distance(set1, set2)
             distance_matrix[i, j] = dist
             distance_matrix[j, i] = dist
@@ -29,11 +29,13 @@ def umap_reduction(umapSettings):
         neighbors = int(settings[0])
         
         seed = int(settings[1])
+
+        distance = float(settings[2])
        
         if seed == 0:
             seed = None
         
-        reducer = umap.UMAP(metric='precomputed', n_neighbors=neighbors, random_state=seed)
+        reducer = umap.UMAP(metric='precomputed', n_neighbors=neighbors, random_state=seed, min_dist=distance)
     else:
         reducer = umap.UMAP(metric='precomputed')
     

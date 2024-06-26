@@ -1,69 +1,133 @@
-const pointSize = document.getElementById("point-size");
-const pointStartColor = document.getElementById("point-start-color");
-const pointEndColor = document.getElementById("point-end-color");
-const selectedColor = document.getElementById("selected-color");
-const cutoff = document.getElementById("cutoff");
-const seed = document.getElementById("seed");
-const neighbors = document.getElementById("neighbors");
-const colorscaleMax = document.getElementById("colorscale-max");
-const colorscaleMin = document.getElementById("colorscale-min");
-
 const defaultSettings = {
-  pointSize: "6",
-  pointStartColor: "#CDCDCD",
-  pointEndColor: "#000000",
-  selectedColor: "#6bfc03",
-  cutoff: "0.45",
+  "insignificant-color": "#CDCDCD",
+  "significant-color": "#000000",
+  "selected-color": "#6bfc03",
+  "q-value-maximum": "0.45",
+  "q-value-minimum": "0.0",
+  "fixed-size": true,
+  "dynamic-size": false,
+  "fixed-size-input": "6",
+  "dynamic-size-minimum": "6",
+  "dynamic-size-maximum": "20",
+  "number-of-neighbors": "15",
+  "minimum-distance": "0.1",
   seed: "0",
-  neighbors: "15",
-  umapChange: false,
-  colorscaleMax: "0.05",
-  colorscaleMin: "0",
+  umap: "15-0-0.1",
 };
 
-if (localStorage.getItem("settings") !== null) {
-  const currentSettings = JSON.parse(localStorage.getItem("settings"));
-  displayValues(currentSettings);
-} else {
-  displayValues(defaultSettings);
-  localStorage.setItem("settings", JSON.stringify(defaultSettings));
+const inputRefrences = {};
+
+const fixedSizeButton = document.getElementById("fixed-size");
+const dynamicSizeButton = document.getElementById("dynamic-size");
+
+const fixedInput = document.getElementById("fixed-size-input-reveal");
+const dynamicInput = document.getElementById("dynamic-size-input-reveal");
+
+main();
+
+function main() {
+  Object.keys(defaultSettings).forEach((key) => {
+    if (key !== "umap") {
+      inputRefrences[key] = document.getElementById(key);
+    }
+  });
+
+  addRadioEventListeners();
+  addSpinnerOverlay();
+
+  if (localStorage.getItem("settings") !== null) {
+    const currentSettings = JSON.parse(localStorage.getItem("settings"));
+    displayValues(currentSettings);
+  } else {
+    localStorage.setItem("settings", JSON.stringify(defaultSettings));
+    displayValues(defaultSettings);
+  }
+  toggleSizeVisibility();
 }
 
 function displayValues(settings) {
-  pointSize.value = settings["pointSize"];
-  pointStartColor.value = settings["pointStartColor"];
-  pointEndColor.value = settings["pointEndColor"];
-  selectedColor.value = settings["selectedColor"];
-  cutoff.value = settings["cutoff"];
-  seed.value = settings["seed"];
-  neighbors.value = settings["neighbors"];
-  colorscaleMax.value = settings["colorscaleMax"];
-  colorscaleMin.value = settings["colorscaleMin"];
+  for (const [key, value] of Object.entries(inputRefrences)) {
+    if (key === "fixed-size" || key === "dynamic-size") {
+      value.checked = settings[key];
+    } else {
+      value.value = settings[key];
+    }
+  }
 }
 
 function updateSettings() {
-  let settings = {
-    pointSize: pointSize.value,
-    pointStartColor: pointStartColor.value,
-    pointEndColor: pointEndColor.value,
-    selectedColor: selectedColor.value,
-    cutoff: cutoff.value,
-    seed: seed.value,
-    neighbors: neighbors.value,
-    colorscaleMax: colorscaleMax.value,
-    colorscaleMin: colorscaleMin.value,
-    umapChange: false,
-  };
+  let newSettings = {};
+
+  newSettings.umapChange = false;
+
+  for (const [key, value] of Object.entries(inputRefrences)) {
+    if (key === "fixed-size" || key === "dynamic-size") {
+      newSettings[key] = value.checked;
+    } else {
+      newSettings[key] = value.value;
+    }
+  }
 
   let oldSettings = JSON.parse(localStorage.getItem("settings"));
 
-  if (
-    settings.seed !== oldSettings["seed"] ||
-    settings.neighbors !== oldSettings["neighbors"]
-  ) {
-    settings.umapChange = true;
-    settings.umap = settings.neighbors + "-" + settings.seed;
+  if (isUmapSettingDifferent(newSettings, oldSettings)) {
+    newSettings.umapChange = true;
+    newSettings.umap =
+      newSettings["number-of-neighbors"] +
+      "-" +
+      newSettings["seed"] +
+      "-" +
+      newSettings["minimum-distance"];
   }
 
-  localStorage.setItem("settings", JSON.stringify(settings));
+  localStorage.setItem("settings", JSON.stringify(newSettings));
+}
+
+function isUmapSettingDifferent(setting1, setting2) {
+  return (
+    setting1["number-of-neighbors"] !== setting2["number-of-neighbors"] ||
+    setting1["minimum-distance"] !== setting2["minimum-distance"] ||
+    setting1["seed"] !== setting2["seed"]
+  );
+}
+
+function addRadioEventListeners() {
+  fixedSizeButton.addEventListener("change", () => {
+    toggleSizeVisibility();
+  });
+
+  dynamicSizeButton.addEventListener("change", () => {
+    toggleSizeVisibility();
+  });
+}
+
+function toggleSizeVisibility() {
+  if (fixedSizeButton.checked) {
+    fixedInput.style.display = "block";
+    dynamicInput.style.display = "none";
+  } else if (dynamicSizeButton.checked) {
+    dynamicInput.style.display = "block";
+    fixedInput.style.display = "none";
+  }
+}
+
+function addSpinnerOverlay() {
+  const spinnerOverlay = document.getElementById("loading-spinner");
+
+  // Prevent interaction with the site while spinner is shown
+  spinnerOverlay.addEventListener("click", function (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  });
+
+  document.body.addEventListener(
+    "click",
+    function (event) {
+      if (spinnerOverlay.style.display === "flex") {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+    },
+    true
+  );
 }
