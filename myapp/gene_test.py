@@ -1,13 +1,20 @@
 import pandas as pd
 import umap
 import numpy as np
+import base64
+from io import BytesIO
 
 def jaccard_distance(set1, set2):
     return 1 - (len(set1.intersection(set2)) / len(set1.union(set2)))
 
-def umap_reduction(umapSettings):
-    file_path = 'C:\\Users\\jcour\\Work Github\\Gene-Set-Visualizer\\static\\enrichment-GO.tsv'
-    df = pd.read_csv(file_path, sep='\t', header=0)
+def umap_reduction(umapSettings, fileData):
+    format, tsvData = fileData.split(';base64,') 
+  
+    file_content = base64.b64decode(tsvData)
+
+    tsvFile = BytesIO(file_content)
+
+    df = pd.read_csv(tsvFile, sep='\t', header=0)
 
     n = df.shape[0]
 
@@ -48,7 +55,11 @@ def umap_reduction(umapSettings):
     embedding_df['setName'] = df['Gene set name'].values
     embedding_df['setSize'] = df['Effective gene set size'].values
     embedding_df['molecules'] = df['Molecules contributed to enrichment'].values
+    
+    # Sort entries by descending order of qValue so if two points overlap, the point with the more significant q value appears on top
+    embedding_df = embedding_df.sort_values(by='qValue', ascending=False)
 
     embedding_df_json = embedding_df.to_json(orient='records')
+
     # Save the JSON to a file or pass it to your frontend
     return embedding_df_json

@@ -1,4 +1,12 @@
 let tableContainer = document.getElementById("selected-points-container");
+let iframe = document.getElementById("graph").contentWindow;
+
+main();
+
+function main() {
+  // Call the function initially to load any existing data from local storage
+  updateContent();
+}
 
 function updateContent() {
   let selecteditems = localStorage.getItem("selected");
@@ -26,9 +34,6 @@ function updateContent() {
     tableCreator(selecteditems[i], intersection);
   }
 }
-
-// Call the function initially to load any existing data from local storage
-updateContent();
 
 // Listen for changes in local storage and update content accordingly
 window.addEventListener("storage", function (e) {
@@ -103,8 +108,6 @@ function findIntersection(set1, set2, intersection) {
 
   return intersection;
 }
-
-let iframe = document.getElementById("graph").contentWindow;
 
 function clearSelected() {
   iframe.clearSelected();

@@ -9,14 +9,15 @@ from .gene_test import umap_reduction
 def home(request):
     return render(request, "base.html")
 
-def read_output_config(request, umapSettings):
-    print(umapSettings)
-    data = json.loads(umap_reduction(umapSettings))
-    return JsonResponse(data, safe=False)
-
-def read_output(request):
-    data = json.loads(umap_reduction(""))
-    return JsonResponse(data, safe=False)
+def read_output(request, umapSettings):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        fileData = data.get("file")
+        print(umapSettings)
+        data = json.loads(umap_reduction(umapSettings, fileData))
+        return JsonResponse(data, safe=False)
+    else: 
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
     
 def read_graph(request):
     file_path = os.path.join(settings.BASE_DIR, 'myapp', 'templates', 'graph.html')

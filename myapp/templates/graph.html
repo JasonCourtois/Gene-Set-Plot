@@ -24,21 +24,24 @@
         const spinnerOverlay =
           window.parent.document.getElementById("loading-spinner");
 
-        // Entry Point
-        main();
-
         // Draw initial graph
         async function main() {
           let settings = getLocalStorage("settings");
-          console.log(settings);
+
           if (getLocalStorage("data") === null) {
             showSpinner();
             // Check if data exists, if not then get it, then draw graph
-            await getUmapData(settings["umap"]);
+            try {
+              await getUmapData(settings["umap"]);
+            } catch (error) {
+              hideSpinner();
+              throw error;
+              return;
+            }
             hideSpinner();
           }
-          graph();
 
+          graph();
           let mainDisplay = document.getElementsByClassName("user-select-none");
           mainDisplay[0].style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.1)"; // Add box shadow around graph to make it pop
         }
@@ -74,7 +77,7 @@
 
           let layout = {
             // Define layout properties of graoh
-            title: "UMAP projection of the Gene dataset",
+            title: "Click Here To Set Title",
             hovermode: "closest",
             xaxis: {
               title: "UMAP-1",
@@ -91,6 +94,7 @@
             edits: {
               annotationTail: true,
               annotationText: true,
+              titleText: true,
             },
             doubleClick: false,
           };
@@ -129,92 +133,17 @@
             Plotly.newPlot("plot-container", [trace], layout, config);
           }
 
-          // DEBUG for now
-          myPlot.on("plotly_relayout", function (data) {
-            //console.log(myPlot.layout.annotations);
-          });
-
           // Handles selecting and unselecting data
           myPlot.on("plotly_click", function (event) {
-            let selected = getLocalStorage("selected"); // Get needed data from local storage
-            let fullGraphData = getLocalStorage("data");
-            let settings = getLocalStorage("settings");
-            if (selected === null) {
-              selected = [];
-            }
-
-            let point = event.points[0]; // Get the point that was clicked
-
-            let curveNumber = point.curveNumber; // Get point number, curve number of graph, and make list of colors
-            let colors = point.data.marker.color.slice();
-            let pointNumber = point.pointNumber;
-            let size = point.data.marker.size.slice();
-
-            let unselect = false; // Assume point isn't being unselected
-
-            if (
-              fullGraphData["color"][pointNumber] === settings["selected-color"] // If the point is already selected (color is highlighted)
-            ) {
-              let normalColor = fullGraphData["qValue"][pointNumber]; // Get normal color and update the local storage data and new color array
-              fullGraphData["color"][pointNumber] = normalColor;
-              colors[pointNumber] = normalColor;
-              unselect = true;
-            } else {
-              colors[pointNumber] = settings["selected-color"];
-              fullGraphData["color"][pointNumber] = settings["selected-color"];
-            }
-
-            setLocalStorage("data", fullGraphData);
-
-            let selectedPoint = {
-              pointNumber: pointNumber,
-              qValue: fullGraphData["qValue"][pointNumber],
-              molecules: fullGraphData["molecules"][pointNumber],
-              setName: fullGraphData["setName"][pointNumber],
-            };
-
-            if (unselect) {
-              for (let i = 0; i < selected.length; i++) {
-                if (selected[i]["pointNumber"] === pointNumber) {
-                  selected.splice(i, 1);
-                }
-              }
-            } else {
-              selected.push(selectedPoint);
-            }
-
-            let update = {
-              marker: {
-                color: colors,
-                colorbar: {
-                  title: {
-                    text: "Q-Value",
-                  },
-                },
-                colorscale: [
-                  [0.0, settings["significant-color"]],
-                  [1.0, settings["insignificant-color"]],
-                ],
-                colorbar: {
-                  title: {
-                    text: "Q-Value",
-                  },
-                },
-                cmax: settings["q-value-maximum"],
-                cmin: settings["q-value-minimum"],
-                size: size,
-                opacity: 1.0,
-                line: {
-                  width: 1,
-                  color: "white",
-                },
-              },
-            };
-
-            setLocalStorage("selected", selected);
-            Plotly.restyle("plot-container", update, [curveNumber]);
+            selectPoint(event, true);
           });
 
+          // Handles select events with box select and lasso select
+          myPlot.on("plotly_selected", function (event) {
+            selectPoint(event, false);
+          });
+
+          // handles double clicking to zoom out
           myPlot.on("plotly_doubleclick", () => {
             camera = getLocalStorage("camera");
             Plotly.relayout("plot-container", {
@@ -227,7 +156,16 @@
         // Get new graph data from UMAP on backend
         function getUmapData(umapSettings) {
           return new Promise((resolve, reject) => {
-            fetch("/read-output/" + umapSettings)
+            let fileData = localStorage.getItem("rawFile");
+            const csrftoken = getCookie("csrftoken");
+            fetch("/read-output/" + umapSettings, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrftoken,
+              },
+              body: JSON.stringify({ file: fileData }),
+            })
               .then((response) => response.json())
               .then((data) => {
                 localStorage.removeItem("camera");
@@ -241,7 +179,7 @@
                 for (let i = 0; i < data.length; i++) {
                   dataKeys.forEach((key) => {
                     if (key === "color") {
-                      dataStorage["color"].push(data[i]["qValue"]);
+                      dataStorage["color"].push("white");
                     } else if (key === "pointNumber") {
                       dataStorage["pointNumber"].push(i);
                     } else {
@@ -308,6 +246,14 @@
         function makeTrace(data, settings) {
           let size = getSize(data["setSize"], settings);
 
+          let outlineWidth = data["color"].map((color) => {
+            if (color === "white") {
+              return 1;
+            } else {
+              return 2;
+            }
+          });
+
           let trace = {
             x: data["X"],
             y: data["Y"],
@@ -321,7 +267,7 @@
             hovertemplate:
               "Name: %{text}<br>Q-Value: %{customdata[0]}<extra></extra>", // Format hover text
             marker: {
-              color: data["color"],
+              color: data["qValue"],
               colorscale: [
                 [0.0, settings["significant-color"]],
                 [1.0, settings["insignificant-color"]],
@@ -329,6 +275,7 @@
               colorbar: {
                 title: {
                   text: "Q-Value",
+                  side: "right",
                 },
               },
               cmax: settings["q-value-maximum"],
@@ -336,12 +283,110 @@
               size: size,
               opacity: 1.0,
               line: {
-                width: 1,
-                color: "white",
+                width: outlineWidth,
+                color: data["color"],
               },
             },
           };
           return trace;
+        }
+
+        function selectPoint(event, allowUnselect) {
+          let selected = getLocalStorage("selected"); // Get needed data from local storage
+          let fullGraphData = getLocalStorage("data");
+          let settings = getLocalStorage("settings");
+          if (selected === null) {
+            selected = [];
+          }
+
+          if (event === undefined || event.points.length === 0) {
+            return;
+          }
+
+          let firstPoint = event.points[0]; // Get the point that was clicked
+          let curveNumber = firstPoint.curveNumber; // Get point number, curve number of graph, and make list of colors
+          let borderColor = firstPoint.data.marker.line.color.slice();
+          let pointColors = firstPoint.data.marker.color.slice();
+          let outlineWidth = firstPoint.data.marker.line.width.slice();
+          let size = firstPoint.data.marker.size.slice();
+
+          let unselect = false; // Assume point isn't being unselected
+
+          for (let i = 0; i < event.points.length; i++) {
+            let pointNumber = event.points[i].pointNumber;
+            let fullDataPointNumber = event.points[i].customdata[1];
+
+            if (
+              fullGraphData["color"][fullDataPointNumber] ===
+                settings["selected-color"] &&
+              allowUnselect // If the point is already selected (color is highlighted)
+            ) {
+              fullGraphData["color"][fullDataPointNumber] = "white";
+              borderColor[pointNumber] = "white";
+              outlineWidth[pointNumber] = 1;
+              unselect = true;
+            } else {
+              borderColor[pointNumber] = settings["selected-color"];
+              fullGraphData["color"][fullDataPointNumber] =
+                settings["selected-color"];
+              outlineWidth[pointNumber] = 2;
+            }
+
+            let selectedPoint = {
+              pointNumber: fullDataPointNumber,
+              qValue: fullGraphData["qValue"][fullDataPointNumber],
+              molecules: fullGraphData["molecules"][fullDataPointNumber],
+              setName: fullGraphData["setName"][fullDataPointNumber],
+            };
+
+            if (unselect && allowUnselect) {
+              for (let i = 0; i < selected.length; i++) {
+                if (selected[i]["pointNumber"] === fullDataPointNumber) {
+                  selected.splice(i, 1);
+                }
+              }
+            } else if (
+              !selected.some(
+                (obj) => obj["pointNumber"] === fullDataPointNumber
+              )
+            ) {
+              selected.push(selectedPoint);
+            }
+          }
+
+          setLocalStorage("data", fullGraphData);
+
+          let update = {
+            marker: {
+              color: pointColors,
+              colorbar: {
+                title: {
+                  text: "Q-Value",
+                },
+              },
+              colorscale: [
+                [0.0, settings["significant-color"]],
+                [1.0, settings["insignificant-color"]],
+              ],
+              colorbar: {
+                title: {
+                  text: "Q-Value",
+                  side: "right",
+                },
+              },
+              cmax: settings["q-value-maximum"],
+              cmin: settings["q-value-minimum"],
+              size: size,
+              opacity: 1.0,
+              line: {
+                width: outlineWidth,
+                color: borderColor,
+              },
+            },
+          };
+
+          setLocalStorage("selected", selected);
+          Plotly.restyle("plot-container", update, [curveNumber]);
         }
 
         // Clear out selected items
@@ -353,8 +398,7 @@
           }
           for (let i = 0; i < selected_points.length; i++) {
             point_number = selected_points[i]["pointNumber"];
-            qvalue = selected_points[i]["qValue"];
-            fullGraphData["color"][point_number] = qvalue;
+            fullGraphData["color"][point_number] = "white";
           }
           localStorage.setItem("selected", "[]");
           setLocalStorage("data", fullGraphData);
@@ -450,7 +494,7 @@
         function checkOverlapOnAxis(first, second, range) {
           return first > second - range && first < second + range;
         }
-        
+
         function getSize(sizes, settings) {
           if (settings["fixed-size"]) {
             return settings["fixed-size-input"];
@@ -477,7 +521,7 @@
           for (let i = 0; i < sizes.length; i++) {
             normalizedSizes.push(minOutput + (sizes[i] - minInput) * scale);
           }
-      
+
           return normalizedSizes;
         }
 
@@ -495,6 +539,24 @@
 
         function hideSpinner() {
           spinnerOverlay.style.display = "none";
+        }
+
+        // Function to get CSRF token
+        function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === name + "=") {
+                cookieValue = decodeURIComponent(
+                  cookie.substring(name.length + 1)
+                );
+                break;
+              }
+            }
+          }
+          return cookieValue;
         }
       </script>
     </div>

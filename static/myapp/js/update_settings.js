@@ -70,14 +70,15 @@ function updateSettings() {
 
   let oldSettings = JSON.parse(localStorage.getItem("settings"));
 
+  newSettings.umap =
+    newSettings["number-of-neighbors"] +
+    "-" +
+    newSettings["seed"] +
+    "-" +
+    newSettings["minimum-distance"];
+
   if (isUmapSettingDifferent(newSettings, oldSettings)) {
     newSettings.umapChange = true;
-    newSettings.umap =
-      newSettings["number-of-neighbors"] +
-      "-" +
-      newSettings["seed"] +
-      "-" +
-      newSettings["minimum-distance"];
   }
 
   localStorage.setItem("settings", JSON.stringify(newSettings));

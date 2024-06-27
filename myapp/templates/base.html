@@ -3,6 +3,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    {% csrf_token %}
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Interactive UMAP Plot</title>
     {% load static %}
@@ -23,9 +24,9 @@
         </div>
       </div>
       <div class="nav-links">
-        <span class="nav-button">Home</span>
+        <span class="nav-button" id="nav-import">Import Data</span>
+        <span class="nav-button">Help</span>
         <span class="nav-button">About</span>
-        <span class="nav-button">Test</span>
         <div class="settings-button">
           <svg
             height="100%"
@@ -33,7 +34,7 @@
             style="enable-background: new 0 0 512 512"
             version="1.1"
             viewBox="0 0 512 512"
-            width="auto"
+            width="100%"
             xml:space="preserve"
             xmlns="http://www.w3.org/2000/svg"
             xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -45,7 +46,17 @@
         </div>
       </div>
     </nav>
-    <div class="graph-container">
+    <div id="upload-wrapper">
+      <div id="initial-upload">
+        <h2>Please Select Data File</h2>
+        <div>
+          <input type="file" id="initial-file-input" />
+          <button id="initial-upload-button">Upload</button>
+        </div>
+        <p>For more information, click Help in the top right</p>
+      </div>
+    </div>
+    <div id="graph-container">
       <iframe id="graph" src="{% url 'read_graph' %}" frameborder="0"></iframe>
       <div class="settings-wrapper">
         <div class="settings">
@@ -156,7 +167,6 @@
             <label for="seed">Seed (0 is random):</label>
             <input type="numeric" id="seed" name="seed" />
           </div>
-          <script src="{% static 'myapp/js/update_settings.js' %}"></script>
           <div class="button-wrapper">
             <button onclick="clearSelected()">Clear Selected</button>
             <button onclick="updateSettings()">Apply</button>
@@ -168,57 +178,8 @@
 
     <div id="selected-points-container"></div>
 
+    <script src="{% static 'myapp/js/update_settings.js' %}"></script>
     <script src="{% static 'myapp/js/modify_selected.js' %}"></script>
+    <script src="{% static 'myapp/js/upload_file.js' %}"></script>
   </body>
-  <style>
-    .nav-bar {
-      margin-left: 50px;
-      margin-right: 50px;
-      margin-top: 15px;
-      background-color: #9cc5e7;
-      color: #fff;
-      padding-top: 15px;
-      padding-bottom: 15px;
-      display: flex;
-      justify-content: space-between;
-      height: 50px;
-      border-radius: 100px;
-    }
-
-    .header-container {
-      margin-left: 50px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-    }
-
-    .header-container h1 {
-      margin: 0px;
-      color: black;
-    }
-
-    .nav-links {
-      margin-right: 50px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      height: 100%;
-      column-gap: 20px;
-    }
-
-    .nav-button {
-      text-align: center;
-      padding: 10px;
-      border-radius: 15px;
-      border: 0px;
-      font-size: large;
-      color: black;
-    }
-
-    .settings-button {
-      height: 40px;
-      border-radius: 15px;
-    }
-  </style>
 </html>
