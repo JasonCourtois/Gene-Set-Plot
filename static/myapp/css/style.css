@@ -7,6 +7,10 @@ body {
   overflow-x: hidden;
 }
 
+h4 {
+  margin: 0.5em;
+}
+
 #graph {
   width: 100%;
   height: 100%;
@@ -28,7 +32,7 @@ body {
   flex-shrink: 0;
 }
 
-.settings-wrapper {
+.settings-container {
   background-color: #ffffff;
   border: 1px solid #ddd;
   box-shadow: 0 3px 9px rgba(0, 0, 0, 0.1);
@@ -43,12 +47,8 @@ body {
   transition: right 0.5s ease;
 }
 
-.settings-wrapper.visible {
+.settings-container.visible {
   right: 0px;
-}
-
-h4 {
-  margin: 0.5em;
 }
 
 .graph-settings-header,
@@ -57,7 +57,7 @@ h4 {
   justify-content: center;
 }
 
-.button-wrapper {
+.button-container {
   display: flex;
   justify-content: space-between;
   padding-top: 5px;
@@ -77,14 +77,14 @@ h4 {
   justify-content: space-between;
 }
 
-.size-number-wrapper {
+.size-number-container {
   display: flex;
   flex-direction: column;
   width: 150px;
   height: 65px;
 }
 
-.radio-wrapper {
+.radio-container {
   display: flex;
   flex-direction: column;
 }
@@ -104,15 +104,25 @@ h4 {
   margin-bottom: 0.7em;
 }
 
-#selected-points-container {
+#selected-section {
   display: none;
+}
+
+#selected-points-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#selected-points-container {
+  display: flex;
   flex-direction: row;
   justify-content: center;
   flex-wrap: wrap;
 }
 
-.table-wrapper {
-  width: 30%;
+.table-container {
+  width: 20%;
   margin: 20px;
 }
 table {
@@ -185,6 +195,7 @@ tbody th {
   justify-content: space-between;
   height: 50px;
   border-radius: 100px;
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.1);
 }
 
 .header-container {
@@ -248,7 +259,7 @@ tbody th {
   border-radius: 15px;
 }
 
-#upload-wrapper {
+#upload-container {
   width: 100%;
   display: none;
   justify-content: center;
@@ -264,4 +275,5 @@ tbody th {
   display: flex;
   flex-direction: column;
   padding-bottom: 20px;
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.1);
 }

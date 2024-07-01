@@ -1,21 +1,11 @@
-const settingsButton = document.querySelector(".settings-button");
-const settingsWrapper = document.querySelector(".settings-wrapper");
+// Get needed refrences to document objects
+const settingsButton = document.querySelector(".settings-button");  // Gear icon in top right
+const settingsWrapper = document.querySelector(".settings-container");  // Wrapper for settings area
+const graphContainer = document.getElementById("graph-container");  // Container for Graph and Settings area
+const uploadWrapper = document.getElementById("upload-container");  // Container for the upload file button
+const selectedPoints = document.getElementById("selected-section"); // Wrapper for selected points below graph
 const graph = document.getElementById("graph");
-const graphContainer = document.getElementById("graph-container");
-const uploadWrapper = document.getElementById("upload-wrapper");
-const selectedPoints = document.getElementById("selected-points-container");
-
 const importNavButton = document.getElementById("nav-import");
-
-importNavButton.addEventListener("click", function () {
-  if (localStorage.getItem("data") === null || confirm("Do you want to import new data?\nThis erases current saved data.")) {
-    localStorage.removeItem("rawFile");
-    localStorage.removeItem("camera");
-    localStorage.setItem("selected", "[]")
-    hideGraph();
-    showUpload();
-  }
-});
 
 let frame;
 
@@ -29,13 +19,32 @@ async function main() {
     localStorage.getItem("data") !== null &&
     localStorage.getItem("rawFile") !== null
   ) {
-    frame.main();
-
+    await frame.main();
+ 
     hideUpload();
     showGraph();
   } else {
     showUpload();
   }
+}
+
+function importFile() {
+  if (
+    localStorage.getItem("data") === null ||
+    confirm("Do you want to import new data?\nThis erases current saved data.")
+  ) {
+    frame.clearSelected();
+    localStorage.removeItem("rawFile");
+    localStorage.removeItem("camera");
+    localStorage.removeItem("data");
+    localStorage.removeItem("annotations");
+    hideGraph();
+    showUpload();
+  }
+}
+
+function redirectToHelp() {
+  window.location.href = "/help";
 }
 
 settingsButton.addEventListener("click", function () {
@@ -67,13 +76,14 @@ document
       alert(`Check that file was formatted correctly, error: ${error}`);
       return;
     }
+    document.getElementById("initial-file-input").value = "";
     hideUpload();
     showGraph();
   });
 
 function showGraph() {
   graphContainer.style.display = "flex";
-  selectedPoints.style.display = "flex";
+  selectedPoints.style.display = "block";
 }
 
 function hideGraph() {

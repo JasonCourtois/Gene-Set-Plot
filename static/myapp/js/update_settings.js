@@ -7,12 +7,10 @@ const defaultSettings = {
   "fixed-size": true,
   "dynamic-size": false,
   "fixed-size-input": "6",
-  "dynamic-size-minimum": "6",
-  "dynamic-size-maximum": "20",
+  "dynamic-size-scalar": "1",
   "number-of-neighbors": "15",
   "minimum-distance": "0.1",
   seed: "0",
-  umap: "15-0-0.1",
 };
 
 const inputRefrences = {};
@@ -69,13 +67,6 @@ function updateSettings() {
   }
 
   let oldSettings = JSON.parse(localStorage.getItem("settings"));
-
-  newSettings.umap =
-    newSettings["number-of-neighbors"] +
-    "-" +
-    newSettings["seed"] +
-    "-" +
-    newSettings["minimum-distance"];
 
   if (isUmapSettingDifferent(newSettings, oldSettings)) {
     newSettings.umapChange = true;

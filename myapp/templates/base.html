@@ -1,4 +1,3 @@
-<!-- myapp/templates/umap_plot.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -24,8 +23,10 @@
         </div>
       </div>
       <div class="nav-links">
-        <span class="nav-button" id="nav-import">Import Data</span>
-        <span class="nav-button">Help</span>
+        <span class="nav-button" id="nav-import" onclick="importFile()"
+          >Import Data</span
+        >
+        <span class="nav-button" onclick="redirectToHelp()">Help</span>
         <span class="nav-button">About</span>
         <div class="settings-button">
           <svg
@@ -46,7 +47,7 @@
         </div>
       </div>
     </nav>
-    <div id="upload-wrapper">
+    <div id="upload-container">
       <div id="initial-upload">
         <h2>Please Select Data File</h2>
         <div>
@@ -58,7 +59,7 @@
     </div>
     <div id="graph-container">
       <iframe id="graph" src="{% url 'read_graph' %}" frameborder="0"></iframe>
-      <div class="settings-wrapper">
+      <div class="settings-container">
         <div class="settings">
           <div class="graph-settings-header"><h3>Graph Settings</h3></div>
           <h4>Point Color</h4>
@@ -95,7 +96,7 @@
           </div>
           <h4>Point Size</h4>
           <div class="size-options">
-            <div class="radio-wrapper">
+            <div class="radio-container">
               <div class="option">
                 <label for="fixed-size">Fixed:</label>
                 <input
@@ -115,7 +116,7 @@
                 />
               </div>
             </div>
-            <div class="size-number-wrapper">
+            <div class="size-number-container">
               <div id="fixed-size-input-reveal">
                 <div class="option">
                   <label for="fixed-size-input">Size:</label>
@@ -128,19 +129,11 @@
               </div>
               <div id="dynamic-size-input-reveal">
                 <div class="option">
-                  <label for="dynamic-size-minimum">Min Size:</label>
+                  <label for="dynamic-size-scalar">Scalar:</label>
                   <input
                     type="numeric"
-                    id="dynamic-size-minimum"
-                    name="dynamic-size-minimum"
-                  />
-                </div>
-                <div class="option">
-                  <label for="dynamic-size-maximum">Max Size:</label>
-                  <input
-                    type="numeric"
-                    id="dynamic-size-maximum"
-                    name="dynamic-size-maximum"
+                    id="dynamic-size-scalar"
+                    name="dynamic-size-scalar"
                   />
                 </div>
               </div>
@@ -167,7 +160,7 @@
             <label for="seed">Seed (0 is random):</label>
             <input type="numeric" id="seed" name="seed" />
           </div>
-          <div class="button-wrapper">
+          <div class="button-container">
             <button onclick="clearSelected()">Clear Selected</button>
             <button onclick="updateSettings()">Apply</button>
             <button onclick="toggleLabels()">Toggle Lables</button>
@@ -176,7 +169,12 @@
       </div>
     </div>
 
-    <div id="selected-points-container"></div>
+    <div id="selected-section">
+      <div id="selected-points-header">
+        <h2>Selected Points:</h2>
+      </div>
+      <div id="selected-points-container"></div>
+    </div>
 
     <script src="{% static 'myapp/js/update_settings.js' %}"></script>
     <script src="{% static 'myapp/js/modify_selected.js' %}"></script>
